@@ -91,14 +91,14 @@ function transformComponent(
         >
           <component
             :is="transformComponent(Component, route)"
-            v-if="renderRouteView"
+            v-if="renderRouteView && Component"
             v-show="!route.meta.iframeSrc"
             :key="route.fullPath"
           />
         </KeepAlive>
         <component
           :is="Component"
-          v-else-if="renderRouteView"
+          v-else-if="renderRouteView && Component"
           :key="route.fullPath"
         />
       </Transition>

@@ -4,6 +4,25 @@
       "title": "演示",
       "naive": "Naive UI",
       "table": "Table"
+    },
+    "tourism": {
+      "title": "景点管理",
+      "region": "地域管理",
+      "destination": "目的地管理",
+      "scenic": "景点管理",
+      "route": "线路管理",
+      "hotel": "酒店管理",
+      "restaurant": "餐饮管理",
+      "transportation": "交通管理",
+      "ticket": "门票管理",
+      "order": "订单管理",
+      "user": "用户管理"
+    },
+    "system": {
+      "title": "系统管理",
+      "user": "账号管理",
+      "menu": "菜单管理",
+      "role": "角色管理"
     }
   }
 }

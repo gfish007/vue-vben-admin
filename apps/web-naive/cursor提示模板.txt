@@ -1,0 +1,107 @@
+
+
+帮我以 region/index.vue 的页面作为模版，替换一下内容，实现下面的功能
+
+查询区域：
+	查询条件：
+	public class SysRole extends BaseEntity {
+
+	    /**
+	     * 角色名
+	     */
+	    private String name;
+	}
+
+	按钮：
+		搜索、新增角色。
+
+列表结果区域：
+
+	列表内容：
+	public class SysRole extends BaseEntity {
+
+	    private Long id;
+
+	    /**
+	     * 创建时间
+	     */
+	    private LocalDateTime gmtCreate;
+
+	    /**
+	     * 更新时间
+	     */
+	    private LocalDateTime gmtModified;
+
+	    /**
+	     * 角色名
+	     */
+	    private String name;
+
+	    /**
+	     * 角色描述
+	     */
+	    private String description;
+
+	}
+
+	操作项：
+		编辑、删除
+
+接口内容如下：
+查询接口：
+    POST /open/sysRole/list
+    入参：
+	    {
+		    "page": {
+		        "size": 10,
+		        "current": 1
+		    },
+		    "queryBody": {}
+		}
+    响应：
+	    {
+		    "code": 0,
+		    "message": "操作成功！",
+		    "data": {
+		        "records": [  //结果
+		        ],
+		        "total": 0,   //总记录数
+		        "size": 10,
+		        "current": 1,
+		        "orders": [],
+		        "optimizeCountSql": true,
+		        "searchCount": true,
+		        "maxLimit": null,
+		        "countId": null,
+		        "pages": 0   //总页数
+		    },
+		    "type": "success"
+		}
+
+
+新增/修改接口：
+	POST /open/sysRole/saveOrUpdate
+    入参：
+    	public class AttractionSaveReq {
+
+		    private Long id;
+
+		    /**
+		     * 角色名
+		     */
+		    private String name;
+
+		    /**
+		     * 角色描述
+		     */
+	    private String description;
+		    
+		}
+
+删除接口：
+	POST /open/sysRole/remove 
+	入参：
+		[] //id数组
+
+详情接口：
+GET /open/sysRole/{id}
