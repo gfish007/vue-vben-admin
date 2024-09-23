@@ -316,21 +316,17 @@ const renderTargetList: TransferRenderTargetList = function ({
 
 <template>
   <Page description="管理系统中的角色信息" title="角色管理">
-    <NCard ref="queryCardRef" class="query-card mb-4 p-2">
-      <NForm :model="queryForm" class="flex h-full items-center" inline>
+    <NCard ref="queryCardRef" class="query-card">
+      <NForm :model="queryForm" inline>
         <NSpace
           :size="[24, 0]"
           align="center"
-          class="w-full"
           justify="space-between"
+          style="width: 100%"
         >
           <NSpace :size="24" align="center">
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="角色名"
-              label-placement="left"
-            >
-              <NInput v-model:value="queryForm.name" class="w-52" />
+            <NFormItem label="角色名" label-placement="left">
+              <NInput v-model:value="queryForm.name" style="width: 200px" />
             </NFormItem>
           </NSpace>
           <NSpace>
@@ -343,7 +339,7 @@ const renderTargetList: TransferRenderTargetList = function ({
       </NForm>
     </NCard>
 
-    <NCard class="table-card flex flex-col overflow-hidden">
+    <NCard>
       <NDataTable
         :columns="columns"
         :data="tableData"
@@ -351,7 +347,6 @@ const renderTargetList: TransferRenderTargetList = function ({
         :pagination="pagination"
         :scroll-x="900"
         :style="{ height: `${tableHeight}px` }"
-        class="flex-1 overflow-auto"
         flex-height
         striped
         @update:page="handlePageChange"
@@ -361,7 +356,6 @@ const renderTargetList: TransferRenderTargetList = function ({
     <NModal
       v-model:show="showModal"
       :title="modalTitle"
-      class="max-h-[90vh] overflow-y-auto"
       preset="card"
       style="width: 800px"
     >
@@ -369,28 +363,26 @@ const renderTargetList: TransferRenderTargetList = function ({
         ref="formRef"
         :model="editingRecord"
         :rules="rules"
-        class="w-full"
         label-placement="left"
         label-width="100px"
         require-mark-placement="right-hanging"
       >
-        <NFormItem class="mb-6" label="角色名" path="name">
+        <NFormItem label="角色名" path="name">
           <NInput v-model:value="editingRecord.name" />
         </NFormItem>
-        <NFormItem class="mb-6" label="角色描述" path="description">
+        <NFormItem label="角色描述" path="description">
           <NInput
             v-model:value="editingRecord.description"
             :autosize="{ minRows: 3, maxRows: 5 }"
             type="textarea"
           />
         </NFormItem>
-        <NFormItem class="mb-6" label="菜单权限" path="allocateMenuIds">
+        <NFormItem label="菜单权限" path="allocateMenuIds">
           <NTransfer
             v-model:value="selectedMenuKeys"
             :options="menuOptions"
             :render-source-list="renderSourceList"
             :render-target-list="renderTargetList"
-            class="h-72 w-full"
             virtual-scroll
           />
         </NFormItem>
@@ -409,4 +401,86 @@ const renderTargetList: TransferRenderTargetList = function ({
   </Page>
 </template>
 
-<style scoped></style>
+<style scoped>
+.n-form-item {
+  margin-bottom: 24px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.n-input-number {
+  width: 100%;
+}
+
+.n-modal {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.n-data-table .n-button {
+  text-decoration: underline;
+}
+
+.n-form {
+  width: 100%;
+}
+
+.n-space {
+  width: 100%;
+}
+
+.query-card {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.query-card :deep(.n-form) {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.query-card :deep(.n-form-item) {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.query-card :deep(.n-form-item-label) {
+  height: auto;
+  padding: 0 8px 0 0;
+  line-height: normal;
+}
+
+.query-card :deep(.n-form-item-blank) {
+  display: flex;
+  align-items: center;
+}
+
+.query-card :deep(.n-button-group) {
+  display: flex;
+}
+
+.query-card :deep(.n-button-group .n-button) {
+  margin-right: 0;
+}
+
+.table-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.n-data-table {
+  flex: 1;
+  overflow: auto;
+}
+
+.n-transfer {
+  width: 100%;
+  height: 300px;
+}
+</style>

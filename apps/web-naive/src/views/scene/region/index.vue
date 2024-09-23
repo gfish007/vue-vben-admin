@@ -337,7 +337,7 @@ const columns = [
       );
     },
     title: '操作',
-    width: 240,
+    width: 180,
   },
 ];
 
@@ -529,7 +529,7 @@ const purpleTheme = {
       </NForm>
     </NCard>
 
-    <NCard class="table-card">
+    <NCard>
       <NDataTable
         :columns="columns"
         :data="tableData"
@@ -537,6 +537,7 @@ const purpleTheme = {
         :pagination="pagination"
         :scroll-x="1100"
         :style="{ height: `${tableHeight}px` }"
+        flex-height
         striped
         @update:page="handlePageChange"
       />
@@ -712,13 +713,6 @@ const purpleTheme = {
 
 .query-card :deep(.n-button-group .n-button) {
   margin-right: 0;
-}
-
-.table-card {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  overflow: hidden; /* 添加这行来防止内容溢出 */
 }
 
 .n-data-table {

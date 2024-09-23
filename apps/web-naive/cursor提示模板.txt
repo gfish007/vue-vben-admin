@@ -1,19 +1,22 @@
-
-
-帮我以 region/index.vue 的页面作为模版，替换一下内容，实现下面的功能
+请帮我以 role/index.vue 的页面作为模版，替换一下内容，实现下面的功能
 
 查询区域：
 	查询条件：
-	public class SysRole extends BaseEntity {
+	public class SysUser {
 
 	    /**
-	     * 角色名
+	     * 手机号
 	     */
-	    private String name;
+	  private String phone;
+
+    /**
+     * 状态 启用 | 禁用
+     */
+    private Boolean enabled;
 	}
 
 	按钮：
-		搜索、新增角色。
+		搜索、重置、新增用户。
 
 列表结果区域：
 
@@ -22,34 +25,58 @@
 
 	    private Long id;
 
-	    /**
-	     * 创建时间
-	     */
-	    private LocalDateTime gmtCreate;
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
 
-	    /**
-	     * 更新时间
-	     */
-	    private LocalDateTime gmtModified;
+    /**
+     * 更新时间
+     */
+    private LocalDateTime gmtModified;
 
-	    /**
-	     * 角色名
-	     */
-	    private String name;
+    /**
+     * 手机号
+     */
+    private String phone;
 
-	    /**
-	     * 角色描述
-	     */
-	    private String description;
+    /**
+     * 邮箱
+     */
+    private String email;
 
+    /**
+     * 昵称
+     */
+    private String nickname;
+
+    /**
+     * 真实姓名
+     */
+    private String realName;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 简介
+     */
+    private String description;
+
+    /**
+     * 状态 启用 | 禁用
+     */
+    private Boolean enabled;
 	}
 
 	操作项：
-		编辑、删除
+		编辑、删除、禁用|启用
 
 接口内容如下：
 查询接口：
-    POST /open/sysRole/list
+    POST /open/sysUser/list
     入参：
 	    {
 		    "page": {
@@ -80,28 +107,118 @@
 
 
 新增/修改接口：
-	POST /open/sysRole/saveOrUpdate
+	POST /open/sysUser/saveOrUpdate
     入参：
     	public class AttractionSaveReq {
 
 		    private Long id;
 
-		    /**
-		     * 角色名
-		     */
-		    private String name;
 
-		    /**
-		     * 角色描述
-		     */
-	    private String description;
-		    
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime gmtModified;
+
+    /**
+     * 手机号
+     */
+    private String phone;
+
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 昵称
+     */
+    private String nickname;
+
+    /**
+     * 真实姓名
+     */
+    private String realName;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 简介
+     */
+    private String description;
+
+    /**
+     * 角色id列表
+     */
+    private List<String> roleIds；
 		}
 
 删除接口：
-	POST /open/sysRole/remove 
+	POST /open/sysUser/remove
 	入参：
 		[] //id数组
 
 详情接口：
-GET /open/sysRole/{id}
+  GET /open/sysUser/{id}
+  响应：
+        	public class AttractionSaveReq {
+
+		    private Long id;
+
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime gmtModified;
+
+    /**
+     * 手机号
+     */
+    private String phone;
+
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 昵称
+     */
+    private String nickname;
+
+    /**
+     * 真实姓名
+     */
+    private String realName;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 简介
+     */
+    private String description;
+
+    /**
+     * 角色id列表
+     */
+    private List<String> roleIds；
+		}
+
+
