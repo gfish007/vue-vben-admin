@@ -26,13 +26,13 @@ import {
   useMessage,
 } from 'naive-ui';
 
+import { getAllMenuList } from '#/api/system/menu';
 import {
   deleteSysRoles,
   getSysRoleDetail,
   querySysRoleList,
   saveOrUpdateSysRole,
-} from '#/api/core/sysRole';
-import { getAllMenuList } from '#/api/system/menu';
+} from '#/api/system/role';
 import { useDynamicHeight } from '#/utils/heightUtils';
 import { purpleTheme } from '#/utils/theme';
 
@@ -370,21 +370,21 @@ const renderTargetList: TransferRenderTargetList = function ({
         :model="editingRecord"
         :rules="rules"
         class="w-full"
-        label-placement="left"
+        label-placement="top"
         label-width="100px"
         require-mark-placement="right-hanging"
       >
-        <NFormItem class="mb-6" label="角色名" path="name">
+        <NFormItem label="角色名" path="name">
           <NInput v-model:value="editingRecord.name" />
         </NFormItem>
-        <NFormItem class="mb-6" label="角色描述" path="description">
+        <NFormItem label="角色描述" path="description">
           <NInput
             v-model:value="editingRecord.description"
             :autosize="{ minRows: 3, maxRows: 5 }"
             type="textarea"
           />
         </NFormItem>
-        <NFormItem class="mb-6" label="菜单权限" path="allocateMenuIds">
+        <NFormItem label="菜单权限" path="allocateMenuIds">
           <NTransfer
             v-model:value="selectedMenuKeys"
             :options="menuOptions"

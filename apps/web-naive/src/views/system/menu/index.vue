@@ -330,7 +330,10 @@ nextTick(() => {
 </script>
 
 <template>
-  <Page description="管理系统中的菜单信息" title="菜单管理">
+  <Page
+    description="管理系统中的菜单信息(icon获取地址：https://iconify.design/)"
+    title="菜单管理"
+  >
     <NCard class="query-card">
       <NForm :model="queryForm" inline>
         <NSpace
