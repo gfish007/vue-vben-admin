@@ -3,15 +3,7 @@ import type { FormInst, FormRules, UploadFileInfo } from 'naive-ui';
 
 import type { AttractionApi } from '#/api/core/attraction.types';
 
-import {
-  computed,
-  h,
-  nextTick,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-} from 'vue';
+import { computed, h, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
@@ -21,6 +13,7 @@ import {
   NCard,
   NConfigProvider,
   NDataTable,
+  NDynamicTags,
   NForm,
   NFormItem,
   NInput,
@@ -45,7 +38,9 @@ import {
 import { uploadFile } from '#/api/core/file';
 import { queryRegionList } from '#/api/core/region';
 import LocationMap from '#/components/LocationMap.vue';
-import RichTextEditor from '#/components/RichTextEditor.vue';
+import TEditor from '#/components/TEditor.vue';
+import { useDynamicHeight } from '#/utils/heightUtils';
+import { purpleTheme } from '#/utils/theme';
 
 const message = useMessage();
 
@@ -77,6 +72,7 @@ const editingRecord = ref<AttractionApi.AttractionSaveReq>({
   location: '',
   locationInfo: {},
   regionId: undefined,
+  tagList: [],
   title: '',
 });
 
@@ -96,6 +92,11 @@ const rules: FormRules = {
     trigger: ['blur', 'change'],
     type: 'number',
     validator: (rule, value) => value !== null && value !== undefined,
+  },
+  tagList: {
+    message: '请至少添加一个标签',
+    min: 1,
+    type: 'array',
   },
   title: { message: '请输入标题', required: true, trigger: 'blur' },
 };
@@ -123,12 +124,13 @@ const handleEdit = async (row: AttractionApi.AttractionRecord) => {
           : detail.locationInfo || {},
     };
     showModal.value = true;
+    console.log('editingRecord.value', editingRecord.value.description);
     // 等待 DOM 更新后设置编辑器内容
-    nextTick(() => {
-      if (editorRef.value) {
-        editorRef.value.setHtml(editingRecord.value.description);
-      }
-    });
+    // nextTick(() => {
+    //   if (editorRef.value) {
+    //     editorRef.value.setHtml(editingRecord.value.description);
+    //   }
+    // });
   } catch (error) {
     console.error('获取详情失败:', error);
     message.error('获取详情失败');
@@ -398,6 +400,7 @@ const handleAdd = () => {
     location: '',
     locationInfo: {},
     regionId: undefined,
+    tagList: [],
     title: '',
   };
   showModal.value = true;
@@ -413,7 +416,7 @@ const coverFileList = computed<UploadFileInfo[]>(() => {
   }));
 });
 
-// 添加上传进度状态
+// 添加上传进状态
 const uploadProgress = ref(0);
 const isUploading = ref(false);
 
@@ -477,29 +480,6 @@ const beforeUpload = (data: {
 // 初始加载数据
 fetchData();
 
-// 添加一个计算属性来动态计算表格度
-const pageHeight = ref(window.innerHeight);
-const tableHeight = computed(() => {
-  const systemBarHeight = 50;
-  const tabBarHeight = 37;
-  const bottomHeight = 32;
-  const titleCardHeight = 84;
-  const cardMargin = 16 * 2 + 20 * 2;
-  return (
-    pageHeight.value -
-    systemBarHeight -
-    tabBarHeight -
-    bottomHeight -
-    titleCardHeight -
-    queryCardHeight.value -
-    cardMargin * 2
-  );
-});
-
-// 添加 ref 来获取卡片元素
-const queryCardRef = ref<HTMLElement | null>(null);
-const queryCardHeight = ref(0);
-
 // Add this near the top of the script, with other ref declarations
 const regionOptions = ref<{ label: string; value: number }[]>([]);
 
@@ -523,96 +503,97 @@ const fetchRegionList = async () => {
 // Modify the onMounted hook to fetch region list
 onMounted(async () => {
   await nextTick();
-  if (queryCardRef.value) {
-    queryCardHeight.value = queryCardRef.value.offsetHeight;
-  }
-
-  const updateHeight = () => {
-    pageHeight.value = window.innerHeight;
-    if (queryCardRef.value) {
-      queryCardHeight.value = queryCardRef.value.offsetHeight;
-    }
-  };
-
-  window.addEventListener('resize', updateHeight);
-
-  onUnmounted(() => {
-    window.removeEventListener('resize', updateHeight);
-  });
-
   // Add this line to fetch region list
   await fetchRegionList();
 });
 
-// 添加一个紫色主题配置
-const purpleTheme = {
-  common: {
-    primaryColor: '#8a2be2',
-    primaryColorHover: '#9f3ff3',
-    primaryColorPressed: '#7a1dd1',
+// 添加一个计算属性来动态计算表格高度
+const queryCardRef = ref<HTMLElement | null>(null);
+const { queryCardHeight, tableHeight } = useDynamicHeight(queryCardRef);
+
+onMounted(() => {
+  if (queryCardRef.value) {
+    queryCardHeight.value = queryCardRef.value.offsetHeight;
+  }
+});
+watch(
+  () => editingRecord.value.description,
+  (newValue) => {
+    console.log('Parent editingRecord.description:', newValue); // 确认父组件的值
   },
-};
+);
 </script>
 
 <template>
   <Page description="管理系统中的景点信息" title="景点管理">
-    <NCard ref="queryCardRef" :bordered="true" class="query-card">
-      <NForm :model="queryForm" inline>
-        <NSpace
-          :size="[24, 0]"
-          align="center"
-          justify="space-between"
-          style="width: 100%"
-        >
+    <NCard ref="queryCardRef" :bordered="true" class="mb-4 p-2">
+      <NForm :model="queryForm" class="flex h-full items-center" inline>
+        <NSpace :size="[24, 0]" class="w-full items-center justify-between">
           <NSpace :size="24" align="center">
-            <NFormItem label="关联区域" label-placement="left">
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="关联区域"
+              label-placement="left"
+            >
               <NSelect
                 v-model:value="queryForm.regionId"
                 :options="regionOptions"
+                class="w-36"
                 clearable
                 filterable
                 placeholder="请选择关联区域"
-                style="width: 150px"
               />
             </NFormItem>
-            <NFormItem label="标题" label-placement="left">
-              <NInput v-model:value="queryForm.title" style="width: 150px" />
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="标题"
+              label-placement="left"
+            >
+              <NInput v-model:value="queryForm.title" class="w-36" />
             </NFormItem>
-            <NFormItem label="发布状态" label-placement="left">
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="发布状态"
+              label-placement="left"
+            >
               <NSelect
                 v-model:value="queryForm.publishStatus"
                 :options="[
                   { label: '待发布', value: 'PENDING' },
                   { label: '已发布', value: 'PUBLISH' },
                 ]"
+                class="w-28"
                 clearable
-                style="width: 120px"
               />
             </NFormItem>
-            <NFormItem label="可用状态" label-placement="left">
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="可用状态"
+              label-placement="left"
+            >
               <NSelect
                 v-model:value="queryForm.enableStatus"
                 :options="[
                   { label: '可用', value: true },
                   { label: '禁用', value: false },
                 ]"
+                class="w-28"
                 clearable
-                style="width: 120px"
               />
             </NFormItem>
           </NSpace>
           <NSpace>
-            <NConfigProvider :theme="purpleTheme">
+            <NButtonGroup>
               <NButton type="primary" @click="handleSearch">搜索</NButton>
-            </NConfigProvider>
-            <NButton @click="handleReset">重置</NButton>
-            <NButton type="success" @click="handleAdd">新增景点</NButton>
+              <NButton @click="handleReset">重置</NButton>
+              <NButton type="success" @click="handleAdd">新增景点</NButton>
+            </NButtonGroup>
           </NSpace>
         </NSpace>
       </NForm>
     </NCard>
 
-    <NCard class="table-card">
+    <NCard>
       <NDataTable
         :columns="columns"
         :data="tableData"
@@ -628,36 +609,45 @@ const purpleTheme = {
     <NModal
       v-model:show="showModal"
       :title="modalTitle"
+      class="max-h-[90vh] w-4/5 max-w-4xl overflow-y-auto"
       preset="card"
-      style="width: 80vw; max-width: 1000px"
     >
       <NForm
         ref="formRef"
         :model="editingRecord"
         :rules="rules"
-        class="modal-form"
+        class="w-full"
         label-placement="left"
         label-width="100px"
         require-mark-placement="right-hanging"
       >
-        <NFormItem label="关联区域" path="regionId">
-          <NSelect
-            v-model:value="editingRecord.regionId"
-            :options="regionOptions"
-            clearable
-            filterable
-            placeholder="请选择关联区域"
-          />
+        <NSpace :size="24" align="start">
+          <NFormItem label="关联区域" path="regionId">
+            <NSelect
+              v-model:value="editingRecord.regionId"
+              :options="regionOptions"
+              clearable
+              filterable
+              placeholder="请选择关联区域"
+              style="width: 200px"
+            />
+          </NFormItem>
+          <NFormItem label="标题" path="title">
+            <NInput v-model:value="editingRecord.title" style="width: 200px" />
+          </NFormItem>
+        </NSpace>
+
+        <NFormItem label="标签列表" path="tagList">
+          <NDynamicTags v-model:value="editingRecord.tagList" />
         </NFormItem>
-        <NFormItem label="标题" path="title">
-          <NInput v-model:value="editingRecord.title" />
-        </NFormItem>
+
         <NFormItem label="封面" path="coverList">
-          <div class="upload-container">
+          <div class="relative w-full">
             <NUpload
               :before-upload="beforeUpload"
               :file-list="coverFileList"
               :max="3"
+              class="w-full"
               list-type="image-card"
               multiple
               @change="handleFileUpload"
@@ -669,16 +659,16 @@ const purpleTheme = {
                 :height="6"
                 :percentage="uploadProgress"
                 :show-indicator="false"
-                class="upload-progress"
+                class="absolute inset-x-0 bottom-0 z-10"
                 processing
               />
             </NUpload>
           </div>
         </NFormItem>
-        <NFormItem class="description-item" label="景点概述" path="description">
-          <RichTextEditor v-model="editingRecord.description" />
+        <NFormItem class="w-full" label="景点概述" path="description">
+          <TEditor v-model="editingRecord.description" />
         </NFormItem>
-        <NFormItem label="位置信息" path="locationInfo" style="width: 100%">
+        <NFormItem class="w-full" label="位置信息" path="locationInfo">
           <LocationMap
             v-model:location="editingRecord.location"
             v-model:location-info="editingRecord.locationInfo"
@@ -697,12 +687,11 @@ const purpleTheme = {
       </template>
     </NModal>
 
-    <!-- 添加描述查看弹窗 -->
     <NModal
       v-model:show="showDescriptionModal"
       :mask-closable="false"
+      class="w-1/2 max-w-md"
       preset="card"
-      style="width: min(50%, 400px)"
       title="景点描述"
     >
       <div v-html="currentDescription"></div>
@@ -715,174 +704,4 @@ const purpleTheme = {
   </Page>
 </template>
 
-<style scoped>
-/* 添加移动端响应式样式 */
-@media (max-width: 768px) {
-  .query-card :deep(.n-form) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .query-card :deep(.n-form-item) {
-    margin-bottom: 8px;
-  }
-
-  .query-card :deep(.n-space) {
-    flex-direction: column;
-  }
-
-  .query-card :deep(.n-select),
-  .query-card :deep(.n-input) {
-    width: 100% !important;
-  }
-
-  .n-data-table {
-    font-size: 12px;
-  }
-
-  .n-button {
-    padding: 4px 8px;
-    font-size: 12px;
-  }
-
-  .n-modal {
-    width: 90vw !important;
-    max-width: none !important;
-  }
-
-  .editor-container {
-    height: 200px;
-  }
-
-  .editor-container :deep(.w-e-toolbar) {
-    flex-wrap: wrap;
-  }
-
-  .editor-container :deep(.w-e-text-container) {
-    height: 150px;
-  }
-
-  .n-upload {
-    width: 100%;
-  }
-
-  .n-upload-file-list {
-    justify-content: flex-start;
-  }
-}
-
-/* 优化表格在移动端的显示 */
-@media (max-width: 768px) {
-  .n-data-table :deep(th),
-  .n-data-table :deep(td) {
-    padding: 8px 4px;
-  }
-
-  .n-data-table :deep(.n-data-table-td__ellipsis) {
-    max-width: 100px;
-  }
-
-  /* 隐藏一些不太重要的列 */
-  .n-data-table :deep(th:nth-child(2)),
-  .n-data-table :deep(td:nth-child(2)),
-  .n-data-table :deep(th:nth-child(3)),
-  .n-data-table :deep(td:nth-child(3)) {
-    display: none;
-  }
-}
-
-.n-form-item {
-  margin-bottom: 16px;
-}
-
-.mb-4 {
-  margin-bottom: 16px;
-}
-
-.n-input-number {
-  width: 100%;
-}
-
-.n-modal {
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.n-data-table .n-button {
-  text-decoration: underline;
-}
-
-.n-form {
-  width: 100%;
-}
-
-.n-space {
-  width: 100%;
-}
-
-.n-upload {
-  width: 100%;
-}
-
-.n-upload-trigger {
-  width: 100%;
-}
-
-.n-upload-file-list {
-  justify-content: center;
-}
-
-.query-card {
-  padding: 8px 16px; /* 添加一些上下内边距 */
-  margin-bottom: 16px;
-}
-
-.query-card :deep(.n-form) {
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
-
-.query-card :deep(.n-form-item) {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0;
-}
-
-.query-card :deep(.n-form-item-label) {
-  height: auto;
-  padding: 0 8px 0 0;
-  line-height: normal;
-}
-
-.query-card :deep(.n-form-item-blank) {
-  display: flex;
-  align-items: center;
-}
-
-.query-card :deep(.n-button-group) {
-  display: flex;
-}
-
-.query-card :deep(.n-button-group .n-button) {
-  margin-right: 0;
-}
-
-.upload-container {
-  position: relative;
-  width: 100%;
-}
-
-.upload-container :deep(.n-upload-trigger) {
-  position: relative;
-  overflow: hidden;
-}
-
-.upload-progress {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1;
-}
-</style>
+<style scoped></style>

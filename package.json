@@ -116,5 +116,11 @@
       "canvas",
       "node-gyp"
     ]
+  },
+  "dependencies": {
+    "@tinymce/tinymce-vue": "^6.0.1",
+    "quill": "^2.0.2",
+    "tinymce": "^7.3.0",
+    "vue3-quill": "^0.3.1"
   }
 }

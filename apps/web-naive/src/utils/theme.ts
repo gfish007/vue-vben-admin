@@ -1,7 +1,8 @@
 export const purpleTheme = {
   common: {
-    primaryColor: '#8a2be2',
-    primaryColorHover: '#9f3ff3',
-    primaryColorPressed: '#7a1dd1',
+    primaryColor: '#8e44ad',
+    primaryColorHover: '#9b59b6',
+    primaryColorPressed: '#7d3c98',
   },
+  name: 'purpleTheme', // Add this line
 };

@@ -9,8 +9,9 @@
       "title": "景区管理",
       "region": "地域管理",
       "destination": "目的地管理",
-      "scenic": "景点管理",
-      "route": "线路管理",
+      "attraction": "景点管理",
+      "gallery": "景点画廊",
+
       "hotel": "酒店管理",
       "restaurant": "餐饮管理",
       "transportation": "交通管理",
