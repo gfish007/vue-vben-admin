@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormInst, FormRules, TreeOption } from 'naive-ui';
 
-import { h, nextTick, reactive, ref } from 'vue';
+import { h, nextTick, onMounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
@@ -26,8 +26,18 @@ import {
   removeMenu,
   saveOrUpdateMenu,
 } from '#/api/system/menu';
+import { useDynamicHeight } from '#/utils/heightUtils';
 
 const message = useMessage();
+
+// 添加一个计算属性来动态计算表格高度
+const queryCardRef = ref<HTMLElement | null>(null);
+const { queryCardHeight, tableHeight } = useDynamicHeight(queryCardRef);
+onMounted(() => {
+  if (queryCardRef.value) {
+    queryCardHeight.value = queryCardRef.value.offsetHeight;
+  }
+});
 
 // 查询条件
 const queryForm = reactive({
@@ -334,7 +344,7 @@ nextTick(() => {
     description="管理系统中的菜单信息(icon获取地址：https://iconify.design/)"
     title="菜单管理"
   >
-    <NCard class="query-card">
+    <NCard ref="queryCardRef" class="query-card">
       <NForm :model="queryForm" inline>
         <NSpace
           :size="[24, 0]"
@@ -357,12 +367,14 @@ nextTick(() => {
     </NCard>
 
     <NCard>
-      <NTree
-        :data="treeData"
-        :default-expanded-keys="['root']"
-        :loading="loading"
-        :render-label="renderTreeNode"
-      />
+      <div :style="{ height: `${tableHeight}px` }">
+        <NTree
+          :data="treeData"
+          :default-expanded-keys="['root']"
+          :loading="loading"
+          :render-label="renderTreeNode"
+        />
+      </div>
     </NCard>
 
     <NModal

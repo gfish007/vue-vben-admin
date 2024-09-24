@@ -3,15 +3,7 @@ import type { FormInst, FormRules, UploadFileInfo } from 'naive-ui';
 
 import type { RegionApi } from '#/api/core/region.types';
 
-import {
-  computed,
-  h,
-  nextTick,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-} from 'vue';
+import { computed, h, onMounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
@@ -43,6 +35,8 @@ import {
   saveOrUpdateRegion,
 } from '#/api/core/region';
 import LocationMap from '#/components/LocationMap.vue';
+import { useDynamicHeight } from '#/utils/heightUtils';
+import { purpleTheme } from '#/utils/theme';
 
 // Add this type declaration
 declare global {
@@ -438,59 +432,14 @@ const handleAddExtendContent = () => {
 fetchData();
 
 // 添加一个计算属性来动态计算表格高度
-const pageHeight = ref(window.innerHeight);
-const tableHeight = computed(() => {
-  const systemBarHeight = 50;
-  const tabBarHeight = 37;
-  const bottomHeight = 32;
-  const titleCardHeight = 84; // 区域管理卡片高度
-  const cardMargin = 16 * 2 + 20 * 2; // 卡片之间的间距 和表格卡片的内边距
-  return (
-    pageHeight.value -
-    systemBarHeight -
-    tabBarHeight -
-    bottomHeight -
-    titleCardHeight -
-    queryCardHeight.value -
-    cardMargin * 2
-  );
-});
-
-// 添加 ref 来获取卡片元素
 const queryCardRef = ref<HTMLElement | null>(null);
-const queryCardHeight = ref(0);
+const { queryCardHeight, tableHeight } = useDynamicHeight(queryCardRef);
 
-onMounted(async () => {
-  // 等待下一个 DOM 更新周期
-  await nextTick();
-  // 获取查询卡片的实际高度
+onMounted(() => {
   if (queryCardRef.value) {
     queryCardHeight.value = queryCardRef.value.offsetHeight;
   }
-
-  const updateHeight = () => {
-    pageHeight.value = window.innerHeight;
-    if (queryCardRef.value) {
-      queryCardHeight.value = queryCardRef.value.offsetHeight;
-    }
-  };
-
-  window.addEventListener('resize', updateHeight);
-
-  // 清理函数
-  onUnmounted(() => {
-    window.removeEventListener('resize', updateHeight);
-  });
 });
-
-// 添加一个紫色主题配置
-const purpleTheme = {
-  common: {
-    primaryColor: '#8a2be2',
-    primaryColorHover: '#9f3ff3',
-    primaryColorPressed: '#7a1dd1',
-  },
-};
 </script>
 
 <template>
@@ -536,6 +485,7 @@ const purpleTheme = {
         :loading="loading"
         :pagination="pagination"
         :scroll-x="1100"
+        :single-line="false"
         :style="{ height: `${tableHeight}px` }"
         flex-height
         striped

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UploadCustomRequestOptions, UploadFileInfo } from 'naive-ui';
 
-import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { h, onMounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
@@ -22,6 +22,8 @@ import {
   NUpload,
   useMessage,
 } from 'naive-ui';
+
+import { useDynamicHeight } from '#/utils/heightUtils';
 
 interface SceneItem {
   id: number;
@@ -61,26 +63,6 @@ const formData = reactive<SceneItem>({
 });
 
 const fileList = ref<UploadFileInfo[]>([]);
-
-// 计算表格的最大高度
-const tableMaxHeight = computed(() => {
-  // 假设其他元素（标题、按钮、分页等）总高度约为200px
-  return windowHeight.value - 200;
-});
-
-// 处理窗口大小变化
-const handleResize = () => {
-  windowHeight.value = window.innerHeight;
-};
-
-onMounted(() => {
-  window.addEventListener('resize', handleResize);
-  loadData(pagination.page, pagination.pageSize);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-});
 
 const columns = [
   { key: 'id', title: 'ID' },
@@ -284,11 +266,21 @@ const customRequest = ({
 const handleUpdateFileList = (newFileList: UploadFileInfo[]) => {
   fileList.value = newFileList;
 };
+
+// 添加一个计算属性来动态计算表格高度
+const queryCardRef = ref<HTMLElement | null>(null);
+const { queryCardHeight, tableHeight } = useDynamicHeight(queryCardRef);
+
+onMounted(() => {
+  if (queryCardRef.value) {
+    queryCardHeight.value = queryCardRef.value.offsetHeight;
+  }
+});
 </script>
 
 <template>
   <Page description="管理景点信息，包括增加、编辑和删除功能。" title="景点管理">
-    <NCard class="search-card mb-4">
+    <NCard class="search-card mb-4" query-card-ref>
       <NForm :model="queryParams" inline>
         <NGrid :cols="24" :x-gap="16" :y-gap="16">
           <NGridItem :span="6">
@@ -322,7 +314,7 @@ const handleUpdateFileList = (newFileList: UploadFileInfo[]) => {
                   { label: '待发布', value: 'PENDING' },
                   { label: '已发布', value: 'PUBLISH' },
                 ]"
-                placeholder="���选择发布状态"
+                placeholder="选择发布状态"
               />
             </NFormItem>
           </NGridItem>
@@ -355,8 +347,11 @@ const handleUpdateFileList = (newFileList: UploadFileInfo[]) => {
           :columns="columns"
           :data="data"
           :loading="loading"
-          :max-height="tableMaxHeight"
           :scroll-x="1200"
+          :single-line="false"
+          :style="{ height: `${tableHeight}px` }"
+          flex-height
+          striped
         />
       </div>
       <div class="mt-4 flex justify-end">

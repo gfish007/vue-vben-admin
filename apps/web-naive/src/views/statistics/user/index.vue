@@ -90,17 +90,21 @@ const fetchData = async () => {
 
 // 表格列定义
 const columns = [
-  { key: 'id', title: 'ID', width: 60 },
-  { key: 'nickname', title: '昵称', width: 180 },
-  { key: 'phoneNumber', title: '手机号', width: 180 },
-  { key: 'gmtCreate', title: '创建时间', width: 180 },
-  { key: 'gmtModified', title: '更新时间', width: 180 },
+  { fixed: 'center', hidden: true, key: 'id', title: 'ID', width: 60 },
+  { fixed: 'center', key: 'nickname', title: '昵称', width: 180 },
+  { fixed: 'center', key: 'phoneNumber', title: '手机号', width: 180 },
+  { fixed: 'center', key: 'appid', title: '小程序id', width: 180 },
+  { fixed: 'center', key: 'openid', title: 'openid', width: 180 },
+  { fixed: 'center', key: 'gmtCreate', title: '创建时间', width: 180 },
+  { fixed: 'center', key: 'gmtModified', title: '更新时间', width: 180 },
   {
+    fixed: 'center',
     key: 'enabled',
     render: (row: any) => (row.enabled ? '正常' : '禁用'),
     title: '状态',
     width: 100,
   },
+
   {
     fixed: 'right',
     key: 'actions',
@@ -210,14 +214,14 @@ onMounted(() => {
           justify="space-between"
         >
           <NSpace :size="24" align="center" wrap>
-            <NFormItem
+            <!-- <NFormItem
               class="mb-0 flex items-center"
               label="appid"
               label-placement="left"
               label-width="96"
             >
               <NInput v-model:value="queryForm.appid" class="w-52" />
-            </NFormItem>
+            </NFormItem> -->
             <NFormItem
               class="mb-0 flex items-center"
               label="手机号"
@@ -234,14 +238,14 @@ onMounted(() => {
             >
               <NInput v-model:value="queryForm.nickname" class="w-52" />
             </NFormItem>
-            <NFormItem
+            <!-- <NFormItem
               class="mb-0 flex items-center"
               label="状态"
               label-placement="left"
               label-width="96"
             >
               <NInput v-model:value="queryForm.enabled" class="w-52" />
-            </NFormItem>
+            </NFormItem> -->
             <NFormItem
               class="mb-0 flex items-center"
               label="注册时间"
@@ -255,7 +259,7 @@ onMounted(() => {
                 type="daterange"
               />
             </NFormItem>
-            <NFormItem
+            <!-- <NFormItem
               class="mb-0 flex items-center"
               label="最近登录时间"
               label-placement="left"
@@ -267,7 +271,7 @@ onMounted(() => {
                 clearable
                 type="daterange"
               />
-            </NFormItem>
+            </NFormItem> -->
             <NButtonGroup>
               <NButton type="primary" @click="handleSearch">搜索</NButton>
               <NButton @click="handleReset">重置</NButton>

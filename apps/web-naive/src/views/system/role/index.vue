@@ -350,6 +350,7 @@ const renderTargetList: TransferRenderTargetList = function ({
         :loading="loading"
         :pagination="pagination"
         :scroll-x="900"
+        :single-line="false"
         :style="{ height: `${tableHeight}px` }"
         class="flex-1 overflow-auto"
         flex-height
