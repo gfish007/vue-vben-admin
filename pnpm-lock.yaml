@@ -500,6 +500,9 @@ importers:
       tinymce:
         specifier: ^7.3.0
         version: 7.3.0
+      vue-waterfall-plugin-next:
+        specifier: ^2.6.0
+        version: 2.6.0
       vue3-quill:
         specifier: ^0.3.1
         version: 0.3.1(typescript@5.6.2)
@@ -10535,6 +10538,9 @@ packages:
     engines: {node: '>=10.15.0'}
     peerDependencies:
       vue: 3.5.7
+
+  vue-waterfall-plugin-next@2.6.0:
+    resolution: {integrity: sha512-GgovHXWkEP0flI/60GPeTC9vQAnYXLfhohAe8BudIljlcpBS+UCFXOS+S7FCsoujhvdcUY1heKxZglf13KGl9g==}
 
   vue3-quill@0.3.1:
     resolution: {integrity: sha512-uZL2laR13R9AJLidtq6oCk7PQ8tJ/U92bcjdK5hsDd3eANmu0nQlf4LKE71wTaih5MnIL7LSZYIFhRs344zPIQ==}
@@ -20648,6 +20654,8 @@ snapshots:
     dependencies:
       is-plain-object: 3.0.1
       vue: 3.5.7(typescript@5.6.2)
+
+  vue-waterfall-plugin-next@2.6.0: {}
 
   vue3-quill@0.3.1(typescript@5.6.2):
     dependencies:

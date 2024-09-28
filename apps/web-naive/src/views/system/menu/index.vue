@@ -344,28 +344,29 @@ nextTick(() => {
     description="管理系统中的菜单信息(icon获取地址：https://iconify.design/)"
     title="菜单管理"
   >
-    <NCard ref="queryCardRef" class="query-card">
-      <NForm :model="queryForm" inline>
-        <NSpace
-          :size="[24, 0]"
-          align="center"
-          justify="space-between"
-          style="width: 100%"
-        >
-          <NSpace :size="24" align="center">
-            <NFormItem label="菜单名" label-placement="left">
-              <NInput v-model:value="queryForm.name" style="width: 200px" />
-            </NFormItem>
+    <div ref="queryCardRef" class="w-full">
+      <NCard class="query-card">
+        <NForm :model="queryForm" inline>
+          <NSpace
+            :size="[24, 0]"
+            align="center"
+            justify="space-between"
+            style="width: 100%"
+          >
+            <NSpace :size="24" align="center">
+              <NFormItem label="菜单名" label-placement="left">
+                <NInput v-model:value="queryForm.name" style="width: 200px" />
+              </NFormItem>
+            </NSpace>
+            <NSpace>
+              <NConfigProvider :theme="purpleTheme">
+                <NButton type="primary" @click="handleSearch">搜索</NButton>
+              </NConfigProvider>
+            </NSpace>
           </NSpace>
-          <NSpace>
-            <NConfigProvider :theme="purpleTheme">
-              <NButton type="primary" @click="handleSearch">搜索</NButton>
-            </NConfigProvider>
-          </NSpace>
-        </NSpace>
-      </NForm>
-    </NCard>
-
+        </NForm>
+      </NCard>
+    </div>
     <NCard>
       <div :style="{ height: `${tableHeight}px` }">
         <NTree

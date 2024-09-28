@@ -444,39 +444,41 @@ onMounted(() => {
 
 <template>
   <Page description="管理系统中的区域信息" title="区域管理">
-    <NCard ref="queryCardRef" class="query-card">
-      <NForm :model="queryForm" inline>
-        <NSpace
-          :size="[24, 0]"
-          align="center"
-          justify="space-between"
-          style="width: 100%"
-        >
-          <NSpace :size="24" align="center">
-            <NFormItem label="可用状态" label-placement="left">
-              <NSelect
-                v-model:value="queryForm.enable_status"
-                :options="[
-                  { label: '可用', value: 1 },
-                  { label: '不可用', value: 0 },
-                ]"
-                clearable
-                style="width: 120px"
-              />
-            </NFormItem>
-            <NFormItem label="名称" label-placement="left">
-              <NInput v-model:value="queryForm.title" style="width: 200px" />
-            </NFormItem>
+    <div ref="queryCardRef" class="w-full">
+      <NCard class="query-card">
+        <NForm :model="queryForm" inline>
+          <NSpace
+            :size="[24, 0]"
+            align="center"
+            justify="space-between"
+            style="width: 100%"
+          >
+            <NSpace :size="24" align="center">
+              <NFormItem label="可用状态" label-placement="left">
+                <NSelect
+                  v-model:value="queryForm.enable_status"
+                  :options="[
+                    { label: '可用', value: 1 },
+                    { label: '不可用', value: 0 },
+                  ]"
+                  clearable
+                  style="width: 120px"
+                />
+              </NFormItem>
+              <NFormItem label="名称" label-placement="left">
+                <NInput v-model:value="queryForm.title" style="width: 200px" />
+              </NFormItem>
+            </NSpace>
+            <NSpace>
+              <NConfigProvider :theme="purpleTheme">
+                <NButton type="primary" @click="handleSearch">搜索</NButton>
+              </NConfigProvider>
+              <NButton type="success" @click="handleAdd">新增区域</NButton>
+            </NSpace>
           </NSpace>
-          <NSpace>
-            <NConfigProvider :theme="purpleTheme">
-              <NButton type="primary" @click="handleSearch">搜索</NButton>
-            </NConfigProvider>
-            <NButton type="success" @click="handleAdd">新增区域</NButton>
-          </NSpace>
-        </NSpace>
-      </NForm>
-    </NCard>
+        </NForm>
+      </NCard>
+    </div>
 
     <NCard>
       <NDataTable

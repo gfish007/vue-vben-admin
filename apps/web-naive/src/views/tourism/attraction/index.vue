@@ -3,15 +3,14 @@ import type { FormInst, FormRules, UploadFileInfo } from 'naive-ui';
 
 import type { AttractionApi } from '#/api/core/attraction.types';
 
-import { computed, h, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
 
-import { Page } from '@vben/common-ui';
+import { Page, useVbenModal } from '@vben/common-ui';
 
 import {
   NButton,
   NButtonGroup,
   NCard,
-  NConfigProvider,
   NDataTable,
   NDynamicTags,
   NForm,
@@ -40,7 +39,6 @@ import { queryRegionList } from '#/api/core/region';
 import LocationMap from '#/components/LocationMap.vue';
 import TEditor from '#/components/TEditor.vue';
 import { useDynamicHeight } from '#/utils/heightUtils';
-import { purpleTheme } from '#/utils/theme';
 
 const message = useMessage();
 
@@ -110,6 +108,18 @@ const deleteLoading = ref(false);
 const saveLoading = ref(false);
 const publishLoading = ref(false);
 
+// 创建 Vben Admin 模态窗实例
+const [Modal, modalApi] = useVbenModal({
+  draggable: true,
+  onCancel: () => {
+    modalApi.close();
+  },
+  onConfirm() {
+    handleSave();
+  },
+  title: modalTitle.value,
+});
+
 // 修改 handleEdit 函数
 const handleEdit = async (row: AttractionApi.AttractionRecord) => {
   editLoading.value = true;
@@ -124,13 +134,7 @@ const handleEdit = async (row: AttractionApi.AttractionRecord) => {
           : detail.locationInfo || {},
     };
     showModal.value = true;
-    console.log('editingRecord.value', editingRecord.value.description);
-    // 等待 DOM 更新后设置编辑器内容
-    // nextTick(() => {
-    //   if (editorRef.value) {
-    //     editorRef.value.setHtml(editingRecord.value.description);
-    //   }
-    // });
+    modalApi.open();
   } catch (error) {
     console.error('获取详情失败:', error);
     message.error('获取详情失败');
@@ -138,7 +142,31 @@ const handleEdit = async (row: AttractionApi.AttractionRecord) => {
     editLoading.value = false;
   }
 };
-
+// 定义 handleSave 函数
+const handleSave = async () => {
+  if (!formRef.value) return;
+  saveLoading.value = true;
+  try {
+    await formRef.value.validate();
+    const saveData = {
+      ...editingRecord.value,
+      locationInfo:
+        typeof editingRecord.value.locationInfo === 'string'
+          ? JSON.parse(editingRecord.value.locationInfo)
+          : editingRecord.value.locationInfo,
+    };
+    await saveOrUpdateAttraction(saveData);
+    message.success(editingRecord.value.id ? '编辑成功' : '新增成功');
+    showModal.value = false;
+    fetchData();
+    modalApi.close();
+  } catch (error) {
+    console.error('保存失败:', error);
+    message.error('保存失败，请检查表单');
+  } finally {
+    saveLoading.value = false;
+  }
+};
 // 修改 handleDelete 函数
 const handleDelete = async (row: AttractionApi.AttractionRecord) => {
   deleteLoading.value = true;
@@ -187,31 +215,6 @@ const handlePublish = async (row: AttractionApi.AttractionRecord) => {
   }
 };
 
-// 修改 handleSave 函数
-const handleSave = async () => {
-  if (!formRef.value) return;
-  saveLoading.value = true;
-  try {
-    await formRef.value.validate();
-    const saveData = {
-      ...editingRecord.value,
-      locationInfo:
-        typeof editingRecord.value.locationInfo === 'string'
-          ? JSON.parse(editingRecord.value.locationInfo)
-          : editingRecord.value.locationInfo,
-    };
-    await saveOrUpdateAttraction(saveData);
-    message.success(editingRecord.value.id ? '编辑成功' : '新增成功');
-    showModal.value = false;
-    fetchData();
-  } catch (error) {
-    console.error('保存失败:', error);
-    message.error('保存失败，请检查表单');
-  } finally {
-    saveLoading.value = false;
-  }
-};
-
 // 查询数据
 const fetchData = async () => {
   loading.value = true;
@@ -245,9 +248,9 @@ const columns = [
     key: 'locationInfo',
     render: (row: AttractionApi.AttractionRecord) => {
       const locationInfo = row.locationInfo
-        ? (typeof row.locationInfo === 'string'
+        ? typeof row.locationInfo === 'string'
           ? JSON.parse(row.locationInfo)
-          : row.locationInfo)
+          : row.locationInfo
         : { lnglat: '' };
       const [longitude, latitude] = locationInfo.lnglat.split(',');
       return h('div', [
@@ -376,7 +379,7 @@ const handleSearch = () => {
 
 // 处理重置
 const handleReset = () => {
-  queryForm.regionId = undefined;
+  queryForm.regionId = null;
   queryForm.title = '';
   queryForm.publishStatus = null;
   queryForm.enableStatus = null;
@@ -404,6 +407,7 @@ const handleAdd = () => {
     title: '',
   };
   showModal.value = true;
+  modalApi.open();
 };
 
 // 计算属性：封面文件
@@ -500,192 +504,179 @@ const fetchRegionList = async () => {
   }
 };
 
+// 添加一个计算属性来动态计算表格高度
+const queryCardRef = ref(null);
+const { queryCardHeight, tableHeight } = useDynamicHeight(queryCardRef);
 // Modify the onMounted hook to fetch region list
 onMounted(async () => {
   await nextTick();
   // Add this line to fetch region list
   await fetchRegionList();
-});
-
-// 添加一个计算属性来动态计算表格高度
-const queryCardRef = ref<HTMLElement | null>(null);
-const { queryCardHeight, tableHeight } = useDynamicHeight(queryCardRef);
-
-onMounted(() => {
   if (queryCardRef.value) {
     queryCardHeight.value = queryCardRef.value.offsetHeight;
+    console.log('queryCardHeight:', queryCardHeight.value);
+  } else {
+    console.warn('queryCardRef is not available');
   }
 });
-watch(
-  () => editingRecord.value.description,
-  (newValue) => {
-    console.log('Parent editingRecord.description:', newValue); // 确认父组件的值
-  },
-);
 </script>
 
 <template>
   <Page description="管理系统中的景点信息" title="景点管理">
-    <NCard ref="queryCardRef" :bordered="true" class="mb-4 p-2">
-      <NForm :model="queryForm" class="flex h-full items-center" inline>
-        <NSpace :size="[24, 0]" class="w-full items-center justify-between">
-          <NSpace :size="24" align="center">
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="关联区域"
-              label-placement="left"
-            >
-              <NSelect
-                v-model:value="queryForm.regionId"
-                :options="regionOptions"
-                class="w-36"
-                clearable
-                filterable
-                placeholder="请选择关联区域"
-              />
-            </NFormItem>
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="标题"
-              label-placement="left"
-            >
-              <NInput v-model:value="queryForm.title" class="w-36" />
-            </NFormItem>
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="发布状态"
-              label-placement="left"
-            >
-              <NSelect
-                v-model:value="queryForm.publishStatus"
-                :options="[
-                  { label: '待发布', value: 'PENDING' },
-                  { label: '已发布', value: 'PUBLISH' },
-                ]"
-                class="w-28"
-                clearable
-              />
-            </NFormItem>
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="可用状态"
-              label-placement="left"
-            >
-              <NSelect
-                v-model:value="queryForm.enableStatus"
-                :options="[
-                  { label: '可用', value: true },
-                  { label: '禁用', value: false },
-                ]"
-                class="w-28"
-                clearable
-              />
-            </NFormItem>
+    <div ref="queryCardRef" class="w-full">
+      <NCard :bordered="true" class="mb-4 p-2">
+        <NForm :model="queryForm" class="flex h-full items-center" inline>
+          <NSpace :size="[24, 0]" class="w-full items-center justify-between">
+            <NSpace :size="24" align="center">
+              <NFormItem
+                class="mb-0 flex items-center"
+                label="关联区域"
+                label-placement="left"
+              >
+                <NSelect
+                  v-model:value="queryForm.regionId"
+                  :options="regionOptions"
+                  class="w-36"
+                  clearable
+                  filterable
+                  placeholder="请选择关联区域"
+                />
+              </NFormItem>
+              <NFormItem
+                class="mb-0 flex items-center"
+                label="标题"
+                label-placement="left"
+              >
+                <NInput v-model:value="queryForm.title" class="w-36" />
+              </NFormItem>
+              <NFormItem
+                class="mb-0 flex items-center"
+                label="发布状态"
+                label-placement="left"
+              >
+                <NSelect
+                  v-model:value="queryForm.publishStatus"
+                  :options="[
+                    { label: '待发布', value: 'PENDING' },
+                    { label: '已发布', value: 'PUBLISH' },
+                  ]"
+                  class="w-28"
+                  clearable
+                />
+              </NFormItem>
+              <NFormItem
+                class="mb-0 flex items-center"
+                label="可用状态"
+                label-placement="left"
+              >
+                <NSelect
+                  v-model:value="queryForm.enableStatus"
+                  :options="[
+                    { label: '可用', value: true },
+                    { label: '禁用', value: false },
+                  ]"
+                  class="w-28"
+                  clearable
+                />
+              </NFormItem>
+            </NSpace>
+            <NSpace>
+              <NButtonGroup>
+                <NButton type="primary" @click="handleSearch">搜索</NButton>
+                <NButton @click="handleReset">重置</NButton>
+                <NButton type="success" @click="handleAdd">新增景点</NButton>
+              </NButtonGroup>
+            </NSpace>
           </NSpace>
-          <NSpace>
-            <NButtonGroup>
-              <NButton type="primary" @click="handleSearch">搜索</NButton>
-              <NButton @click="handleReset">重置</NButton>
-              <NButton type="success" @click="handleAdd">新增景点</NButton>
-            </NButtonGroup>
-          </NSpace>
-        </NSpace>
-      </NForm>
-    </NCard>
-
+        </NForm>
+      </NCard>
+    </div>
     <NCard>
       <NDataTable
         :columns="columns"
         :data="tableData"
         :loading="loading"
+        :max-height="tableHeight"
         :pagination="pagination"
         :scroll-x="1100"
-        :style="{ height: `${tableHeight}px` }"
         striped
         @update:page="handlePageChange"
       />
     </NCard>
 
-    <NModal
-      v-model:show="showModal"
-      :title="modalTitle"
+    <Modal
       class="max-h-[90vh] w-4/5 max-w-4xl overflow-y-auto"
-      preset="card"
+      title="保存景点信息"
     >
-      <NForm
-        ref="formRef"
-        :model="editingRecord"
-        :rules="rules"
-        class="w-full"
-        label-placement="left"
-        label-width="100px"
-        require-mark-placement="right-hanging"
-      >
-        <NSpace :size="24" align="start">
-          <NFormItem label="关联区域" path="regionId">
-            <NSelect
-              v-model:value="editingRecord.regionId"
-              :options="regionOptions"
-              clearable
-              filterable
-              placeholder="请选择关联区域"
-              style="width: 200px"
+      <div class="flex-col-center">
+        <NForm
+          ref="formRef"
+          :model="editingRecord"
+          :rules="rules"
+          class="w-full"
+          label-placement="left"
+          label-width="100px"
+          require-mark-placement="right-hanging"
+        >
+          <NSpace :size="24" align="start">
+            <NFormItem label="关联区域" path="regionId">
+              <NSelect
+                v-model:value="editingRecord.regionId"
+                :options="regionOptions"
+                clearable
+                filterable
+                placeholder="请选择关联区域"
+                style="width: 200px"
+              />
+            </NFormItem>
+            <NFormItem label="标题" path="title">
+              <NInput
+                v-model:value="editingRecord.title"
+                style="width: 200px"
+              />
+            </NFormItem>
+          </NSpace>
+
+          <NFormItem label="标签列" path="tagList">
+            <NDynamicTags v-model:value="editingRecord.tagList" />
+          </NFormItem>
+
+          <NFormItem label="封面" path="coverList">
+            <div class="relative w-full">
+              <NUpload
+                :before-upload="beforeUpload"
+                :file-list="coverFileList"
+                :max="3"
+                class="w-full"
+                list-type="image-card"
+                multiple
+                @change="handleFileUpload"
+                @remove="handleFileRemove"
+              >
+                上传图片
+                <NProgress
+                  v-if="isUploading"
+                  :height="6"
+                  :percentage="uploadProgress"
+                  :show-indicator="false"
+                  class="absolute inset-x-0 bottom-0 z-10"
+                  processing
+                />
+              </NUpload>
+            </div>
+          </NFormItem>
+          <NFormItem class="w-full" label="景点概述" path="description">
+            <TEditor v-model="editingRecord.description" />
+          </NFormItem>
+          <NFormItem class="w-full" label="位置信息" path="locationInfo">
+            <LocationMap
+              v-model:location="editingRecord.location"
+              v-model:location-info="editingRecord.locationInfo"
             />
           </NFormItem>
-          <NFormItem label="标题" path="title">
-            <NInput v-model:value="editingRecord.title" style="width: 200px" />
-          </NFormItem>
-        </NSpace>
-
-        <NFormItem label="标签列表" path="tagList">
-          <NDynamicTags v-model:value="editingRecord.tagList" />
-        </NFormItem>
-
-        <NFormItem label="封面" path="coverList">
-          <div class="relative w-full">
-            <NUpload
-              :before-upload="beforeUpload"
-              :file-list="coverFileList"
-              :max="3"
-              class="w-full"
-              list-type="image-card"
-              multiple
-              @change="handleFileUpload"
-              @remove="handleFileRemove"
-            >
-              上传图片
-              <NProgress
-                v-if="isUploading"
-                :height="6"
-                :percentage="uploadProgress"
-                :show-indicator="false"
-                class="absolute inset-x-0 bottom-0 z-10"
-                processing
-              />
-            </NUpload>
-          </div>
-        </NFormItem>
-        <NFormItem class="w-full" label="景点概述" path="description">
-          <TEditor v-model="editingRecord.description" />
-        </NFormItem>
-        <NFormItem class="w-full" label="位置信息" path="locationInfo">
-          <LocationMap
-            v-model:location="editingRecord.location"
-            v-model:location-info="editingRecord.locationInfo"
-          />
-        </NFormItem>
-      </NForm>
-      <template #footer>
-        <NSpace justify="end">
-          <NButton @click="showModal = false">取消</NButton>
-          <NConfigProvider :theme="purpleTheme">
-            <NButton :loading="saveLoading" type="primary" @click="handleSave">
-              保存
-            </NButton>
-          </NConfigProvider>
-        </NSpace>
-      </template>
-    </NModal>
+        </NForm>
+      </div>
+    </Modal>
 
     <NModal
       v-model:show="showDescriptionModal"

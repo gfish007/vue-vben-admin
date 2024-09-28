@@ -406,47 +406,48 @@ onMounted(() => {
 
 <template>
   <Page description="管理系统中的用户信息" title="用户管理">
-    <NCard ref="queryCardRef" class="query-card mb-4 p-2">
-      <NForm :model="queryForm" class="flex h-full items-center" inline>
-        <NSpace
-          :size="[24, 0]"
-          align="center"
-          class="w-full"
-          justify="space-between"
-        >
-          <NSpace :size="24" align="center">
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="手机号"
-              label-placement="left"
-            >
-              <NInput v-model:value="queryForm.phone" class="w-52" />
-            </NFormItem>
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="状态"
-              label-placement="left"
-            >
-              <NSelect
-                v-model:value="queryForm.enabled"
-                :options="[
-                  { label: '启用', value: true },
-                  { label: '禁用', value: false },
-                ]"
-                class="w-52"
-              />
-            </NFormItem>
+    <div ref="queryCardRef" class="w-full">
+      <NCard class="query-card mb-4 p-2">
+        <NForm :model="queryForm" class="flex h-full items-center" inline>
+          <NSpace
+            :size="[24, 0]"
+            align="center"
+            class="w-full"
+            justify="space-between"
+          >
+            <NSpace :size="24" align="center">
+              <NFormItem
+                class="mb-0 flex items-center"
+                label="手机号"
+                label-placement="left"
+              >
+                <NInput v-model:value="queryForm.phone" class="w-52" />
+              </NFormItem>
+              <NFormItem
+                class="mb-0 flex items-center"
+                label="状态"
+                label-placement="left"
+              >
+                <NSelect
+                  v-model:value="queryForm.enabled"
+                  :options="[
+                    { label: '启用', value: true },
+                    { label: '禁用', value: false },
+                  ]"
+                  class="w-52"
+                />
+              </NFormItem>
+            </NSpace>
+            <NSpace>
+              <NConfigProvider :theme="purpleTheme">
+                <NButton type="primary" @click="handleSearch">搜索</NButton>
+              </NConfigProvider>
+              <NButton type="success" @click="handleAdd">新增用户</NButton>
+            </NSpace>
           </NSpace>
-          <NSpace>
-            <NConfigProvider :theme="purpleTheme">
-              <NButton type="primary" @click="handleSearch">搜索</NButton>
-            </NConfigProvider>
-            <NButton type="success" @click="handleAdd">新增用户</NButton>
-          </NSpace>
-        </NSpace>
-      </NForm>
-    </NCard>
-
+        </NForm>
+      </NCard>
+    </div>
     <NCard class="table-card flex flex-col overflow-hidden">
       <NDataTable
         :columns="columns"

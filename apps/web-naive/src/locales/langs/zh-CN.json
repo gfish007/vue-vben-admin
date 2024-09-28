@@ -11,6 +11,7 @@
       "destination": "目的地管理",
       "attraction": "景点管理",
       "gallery": "景点画廊",
+      "activity": "区域活动",
 
       "hotel": "酒店管理",
       "restaurant": "餐饮管理",
@@ -28,6 +29,12 @@
     "statistics": {
       "title": "数据统计",
       "user": "用户统计"
+    },
+    "guesthouse": {
+      "title": "民宿管理",
+      "rooms": "客房管理",
+      "reservation": "预定管理",
+      "gantt": "入住看板"
     }
   }
 }

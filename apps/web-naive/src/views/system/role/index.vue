@@ -316,33 +316,34 @@ const renderTargetList: TransferRenderTargetList = function ({
 
 <template>
   <Page description="管理系统中的角色信息" title="角色管理">
-    <NCard ref="queryCardRef" class="query-card mb-4 p-2">
-      <NForm :model="queryForm" class="flex h-full items-center" inline>
-        <NSpace
-          :size="[24, 0]"
-          align="center"
-          class="w-full"
-          justify="space-between"
-        >
-          <NSpace :size="24" align="center">
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="角色名"
-              label-placement="left"
-            >
-              <NInput v-model:value="queryForm.name" class="w-52" />
-            </NFormItem>
+    <div ref="queryCardRef" class="w-full">
+      <NCard class="query-card mb-4 p-2">
+        <NForm :model="queryForm" class="flex h-full items-center" inline>
+          <NSpace
+            :size="[24, 0]"
+            align="center"
+            class="w-full"
+            justify="space-between"
+          >
+            <NSpace :size="24" align="center">
+              <NFormItem
+                class="mb-0 flex items-center"
+                label="角色名"
+                label-placement="left"
+              >
+                <NInput v-model:value="queryForm.name" class="w-52" />
+              </NFormItem>
+            </NSpace>
+            <NSpace>
+              <NConfigProvider :theme="purpleTheme">
+                <NButton type="primary" @click="handleSearch">搜索</NButton>
+              </NConfigProvider>
+              <NButton type="success" @click="handleAdd"> 新增角色 </NButton>
+            </NSpace>
           </NSpace>
-          <NSpace>
-            <NConfigProvider :theme="purpleTheme">
-              <NButton type="primary" @click="handleSearch">搜索</NButton>
-            </NConfigProvider>
-            <NButton type="success" @click="handleAdd">新增角色</NButton>
-          </NSpace>
-        </NSpace>
-      </NForm>
-    </NCard>
-
+        </NForm>
+      </NCard>
+    </div>
     <NCard class="table-card flex flex-col overflow-hidden">
       <NDataTable
         :columns="columns"
