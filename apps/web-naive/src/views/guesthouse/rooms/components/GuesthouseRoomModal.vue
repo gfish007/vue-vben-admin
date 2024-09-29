@@ -7,6 +7,7 @@ import { computed, onMounted, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
+import { useWindowSize } from '@vueuse/core';
 import {
   NDynamicInput,
   NForm,
@@ -158,8 +159,11 @@ const presetPolicies = ref(`
 </ul>
 `);
 
+const { width } = useWindowSize();
+const isMobile = computed(() => width.value < 640); // 使用 640px 作为移动设备的断点
+
 const [Modal, modalApi] = useVbenModal({
-  draggable: true,
+  draggable: !isMobile.value,
   onCancel() {
     modalApi.close();
   },
@@ -176,7 +180,7 @@ const [Modal, modalApi] = useVbenModal({
         // 如果是新增，使用预设的设施描述、房间描述和政策服务
         editingRecord.value = {
           ...editingRecord.value,
-          policies: presetPolicies.value, // 使用预设的政策服务内容
+          policies: presetPolicies.value,
           roomAmenities: presetAmenities.value.map((item) => ({
             icon: item.icon,
             key: item.key,
@@ -284,10 +288,22 @@ const validateField = (field: string) => {
     formRef.value.validate([field]);
   }
 };
+
+const handleConfirm = () => {
+  handleSave();
+};
+
+const handleCancel = () => {
+  modalApi.close();
+};
 </script>
 
 <template>
-  <Modal class="max-h-[90vh] w-4/5 max-w-4xl overflow-y-auto px-2">
+  <Modal
+    :class="
+      !isMobile ? 'max-h-[90vh] w-4/5 max-w-4xl overflow-y-auto px-2' : ''
+    "
+  >
     <NForm
       ref="formRef"
       :model="editingRecord"
@@ -296,8 +312,9 @@ const validateField = (field: string) => {
       label-width="100px"
       require-mark-placement="right-hanging"
     >
-      <NGrid :cols="24" :x-gap="24">
-        <NFormItemGi :span="6" label="关联区域" path="regionId">
+      <NGrid :cols="isMobile ? 2 : 24" :x-gap="24">
+        <!-- 根据是否为移动端调整表单布局 -->
+        <NFormItemGi :span="isMobile ? 1 : 6" label="关联区域" path="regionId">
           <NSelect
             v-model:value="editingRecord.regionId"
             :options="regionOptions"
@@ -305,16 +322,16 @@ const validateField = (field: string) => {
             @update:value="validateField('regionId')"
           />
         </NFormItemGi>
-        <NFormItemGi :span="6" label="房间名称" path="title">
+        <NFormItemGi :span="isMobile ? 1 : 6" label="房间名称" path="title">
           <NInput v-model:value="editingRecord.title" />
         </NFormItemGi>
-        <NFormItemGi :span="6" label="房间号" path="roomNo">
+        <NFormItemGi :span="isMobile ? 1 : 6" label="房间号" path="roomNo">
           <NInput v-model:value="editingRecord.roomNo" />
         </NFormItemGi>
-        <NFormItemGi :span="6" label="排序值" path="sortNo">
+        <NFormItemGi :span="isMobile ? 1 : 6" label="排序值" path="sortNo">
           <NInputNumber v-model:value="computedSortNo" />
         </NFormItemGi>
-        <NFormItemGi :span="6" label="当前价格" path="price">
+        <NFormItemGi :span="isMobile ? 1 : 6" label="当前价格" path="price">
           <NInputNumber
             v-model:value="editingRecord.price"
             :precision="2"
@@ -322,7 +339,7 @@ const validateField = (field: string) => {
             @blur="() => formRef?.validate(['price'])"
           />
         </NFormItemGi>
-        <NFormItemGi :span="6" label="原价" path="oriPrice">
+        <NFormItemGi :span="isMobile ? 1 : 6" label="原价" path="oriPrice">
           <NInputNumber
             v-model:value="editingRecord.oriPrice"
             :precision="2"
@@ -330,10 +347,14 @@ const validateField = (field: string) => {
             @blur="() => formRef?.validate(['oriPrice'])"
           />
         </NFormItemGi>
-        <NFormItemGi :span="24" label="封面图" path="coverList">
+        <NFormItemGi :span="isMobile ? 2 : 24" label="封面图" path="coverList">
           <BatchImageUpload v-model="editingRecord.coverList" :max="3" />
         </NFormItemGi>
-        <NFormItemGi :span="24" label="设施描述" path="roomAmenities">
+        <NFormItemGi
+          :span="isMobile ? 2 : 24"
+          label="设施描述"
+          path="roomAmenities"
+        >
           <NDynamicInput
             v-model:value="editingRecord.roomAmenities"
             :on-create="
@@ -373,7 +394,7 @@ const validateField = (field: string) => {
             </template>
           </NDynamicInput>
         </NFormItemGi>
-        <NFormItemGi :span="24" label="房间描述" path="roomDesc">
+        <NFormItemGi :span="isMobile ? 2 : 24" label="房间描述" path="roomDesc">
           <NDynamicInput
             v-model:value="editingRecord.roomDesc"
             :on-create="() => ({ key: '', value: '' })"
@@ -394,7 +415,7 @@ const validateField = (field: string) => {
             </template>
           </NDynamicInput>
         </NFormItemGi>
-        <NFormItemGi :span="24" label="房间政策" path="policies">
+        <NFormItemGi :span="isMobile ? 2 : 24" label="房间政策" path="policies">
           <TEditor v-model="editingRecord.policies" />
         </NFormItemGi>
       </NGrid>

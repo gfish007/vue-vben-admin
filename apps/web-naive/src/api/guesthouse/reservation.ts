@@ -46,12 +46,12 @@ export interface GuesthouseReservationSaveReq {
 }
 
 export const guesthouseReservationApi = {
-  getById: (id: number) =>
+  getById: (id: string) =>
     requestClient.get<GuesthouseReservationSaveReq>(
       `/open/guesthouseReservation/${id}`,
     ),
 
-  remove: (ids: number[]) =>
+  remove: (ids: string[]) =>
     requestClient.delete<void>('/open/guesthouseReservation/remove', {
       data: ids,
     }),

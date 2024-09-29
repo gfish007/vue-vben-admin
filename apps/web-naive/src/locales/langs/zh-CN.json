@@ -34,7 +34,8 @@
       "title": "民宿管理",
       "rooms": "客房管理",
       "reservation": "预定管理",
-      "gantt": "入住看板"
+      "gantt": "入住看板",
+      "ganttDemo": "看板演示"
     }
   }
 }

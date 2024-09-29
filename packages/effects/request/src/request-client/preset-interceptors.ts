@@ -78,7 +78,7 @@ export const errorMessageResponseInterceptor = (
       if (axios.isCancel(error)) {
         return Promise.reject(error);
       }
-
+      console.log('error', error);
       const err: string = error?.toString?.() ?? '';
       let errMsg = '';
       if (err?.includes('Network Error')) {
@@ -91,7 +91,8 @@ export const errorMessageResponseInterceptor = (
         return Promise.reject(error);
       }
 
-      let errorMessage = error?.response?.data?.error?.message ?? '';
+      // let errorMessage = error?.response?.data?.error?.message ?? '';
+      let errorMessage = error?.response?.data?.message ?? '';
       const status = error?.response?.status;
 
       switch (status) {
@@ -113,6 +114,9 @@ export const errorMessageResponseInterceptor = (
         }
         case 408: {
           errorMessage = $t('fallback.http.requestTimeout');
+          break;
+        }
+        case 500: {
           break;
         }
         default: {

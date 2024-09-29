@@ -134,7 +134,8 @@ watch(
   async (val) => {
     if (val) {
       await updateWatermark({
-        content: `${userStore.userInfo?.username}`,
+        // content: `${userStore.userInfo?.username}`,
+        content: '星海',
       });
     }
   },

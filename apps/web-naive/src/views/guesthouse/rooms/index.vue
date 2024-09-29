@@ -3,10 +3,11 @@ import type { DataTableColumns } from 'naive-ui';
 
 import type { GuesthouseRoomsApi } from '#/api/guesthouse/rooms.types';
 
-import { h, onMounted, reactive, ref } from 'vue';
+import { computed, h, onMounted, reactive, ref } from 'vue';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 
+import { useWindowSize } from '@vueuse/core';
 import {
   NButton,
   NButtonGroup,
@@ -30,9 +31,15 @@ import {
   queryGuesthouseRoomsList,
   rollbackGuesthouseRoom,
 } from '#/api/guesthouse/rooms';
+import MobileCardList from '#/components/MobileCardList.vue';
+import MobileQueryDrawer from '#/components/MobileQueryDrawer.vue';
+import ResponsiveLayout from '#/components/ResponsiveLayout.vue';
 import { useDynamicHeight } from '#/utils/heightUtils';
 
 import GuesthouseRoomModal from './components/GuesthouseRoomModal.vue';
+
+const { width } = useWindowSize();
+const isMobile = computed(() => width.value < 640);
 
 const message = useMessage();
 
@@ -205,10 +212,10 @@ const columns: DataTableColumns<GuesthouseRoomsApi.GuesthouseRoomRecord> = [
     render: (row) =>
       h(
         NButton,
-        { onClick: () => handleViewContent('房间政策', row.policies, true) },
+        { onClick: () => handleViewContent('政策和服务', row.policies, true) },
         { default: () => '查看' },
       ),
-    title: '房间政策',
+    title: '政策和服务',
     width: 120,
   },
   {
@@ -307,90 +314,203 @@ const handleViewContent = (title: string, content: string, isHtml = false) => {
   modalContent.isHtml = isHtml;
   showContentModal.value = true;
 };
+
+const showMobileQuery = ref(false);
 </script>
 
 <template>
-  <Page description="管理系统中的客房信息" title="客房管理">
-    <div ref="queryCardRef" class="w-full">
-      <NCard class="query-card mb-4 p-2">
-        <NForm :model="queryForm" class="flex h-full items-center" inline>
-          <NSpace :size="[24, 16]" align="center" item-style="display: flex;">
-            <NFormItem
-              class="!mb-0 flex items-center"
-              label="房间名"
-              label-placement="left"
-            >
-              <NInput
-                v-model:value="queryForm.title"
-                class="w-40"
-                placeholder="请输入房间名"
-              />
-            </NFormItem>
-            <NFormItem
-              class="!mb-0 flex items-center"
-              label="房间号"
-              label-placement="left"
-            >
-              <NInput
-                v-model:value="queryForm.roomNo"
-                class="w-40"
-                placeholder="请输入房间号"
-              />
-            </NFormItem>
-            <NFormItem
-              class="!mb-0 flex items-center"
-              label="关联区域"
-              label-placement="left"
-            >
-              <NSelect
-                v-model:value="queryForm.regionId"
-                :options="regionOptions"
-                class="w-40"
-                clearable
-              />
-            </NFormItem>
-            <NFormItem
-              class="!mb-0 flex items-center"
-              label="状态"
-              label-placement="left"
-            >
-              <NSelect
-                v-model:value="queryForm.enableStatus"
-                :options="[
-                  { label: '已发布', value: true },
-                  { label: '待发布', value: false },
-                ]"
-                class="w-32"
-                clearable
-              />
-            </NFormItem>
-
-            <NSpace :size="[24, 0]" align="center">
-              <NButtonGroup>
-                <NButton type="primary" @click="handleSearch">搜索</NButton>
-                <NButton @click="handleReset">重置</NButton>
+  <Page
+    :description="!isMobile ? '管理系统中的客房信息' : ''"
+    :title="!isMobile ? '客房管理' : ''"
+  >
+    <ResponsiveLayout desktop-slot="div" mobile-slot="div">
+      <template #default="{ isMobile }">
+        <template v-if="isMobile">
+          <div class="pt-0">
+            <div class="mb-4 flex justify-end">
+              <NSpace>
+                <NButton type="primary" @click="showMobileQuery = true">
+                  查询客房
+                </NButton>
                 <NButton type="success" @click="handleAdd">新增客房</NButton>
-              </NButtonGroup>
-            </NSpace>
-          </NSpace>
-        </NForm>
-      </NCard>
-    </div>
-    <NCard class="table-card flex flex-col overflow-hidden">
-      <NDataTable
-        :columns="columns"
-        :data="rooms"
-        :loading="loading"
-        :pagination="pagination"
-        :scroll-x="1200"
-        :style="{ height: `${tableHeight}px` }"
-        class="flex-1 overflow-auto"
-        flex-height
-        striped
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </NCard>
+              </NSpace>
+            </div>
+            <MobileCardList
+              :items="rooms"
+              :pagination="pagination"
+              @page-change="handlePageChange"
+              @page-size-change="handlePageSizeChange"
+            >
+              <template #card-content="{ item: room }">
+                <div class="flex flex-col space-y-2">
+                  <div class="flex justify-between">
+                    <span class="font-bold">{{ room.title }}</span>
+                    <span>房间号: {{ room.roomNo }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>当前价格: {{ room.price }}</span>
+                    <span>原价: {{ room.oriPrice }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>状态: {{ room.enableStatus ? '已发布' : '待发布' }}</span>
+                  </div>
+                  <div class="flex justify-end space-x-2">
+                    <NButton
+                      size="small"
+                      type="success"
+                      @click="handleEdit(room)"
+                    >
+                      编辑
+                    </NButton>
+                    <NPopconfirm @positive-click="handleDelete(room.id)">
+                      <template #trigger>
+                        <NButton size="small" type="error">删除</NButton>
+                      </template>
+                      确定要删除吗？
+                    </NPopconfirm>
+                    <NButton
+                      :type="room.enableStatus ? 'warning' : 'info'"
+                      size="small"
+                      @click="handlePublishOrRollback(room)"
+                    >
+                      {{ room.enableStatus ? '撤回' : '发布' }}
+                    </NButton>
+                  </div>
+                </div>
+              </template>
+            </MobileCardList>
+          </div>
+          <MobileQueryDrawer
+            v-model:show="showMobileQuery"
+            @reset="handleReset"
+            @search="handleSearch"
+          >
+            <NForm :model="queryForm" class="space-y-4">
+              <NFormItem label="房间名">
+                <NInput
+                  v-model:value="queryForm.title"
+                  placeholder="请输入房间名"
+                />
+              </NFormItem>
+              <NFormItem label="房间号">
+                <NInput
+                  v-model:value="queryForm.roomNo"
+                  placeholder="请输入房间号"
+                />
+              </NFormItem>
+              <NFormItem label="关联区域">
+                <NSelect
+                  v-model:value="queryForm.regionId"
+                  :options="regionOptions"
+                  clearable
+                />
+              </NFormItem>
+              <NFormItem label="状态">
+                <NSelect
+                  v-model:value="queryForm.enableStatus"
+                  :options="[
+                    { label: '已发布', value: true },
+                    { label: '待发布', value: false },
+                  ]"
+                  clearable
+                />
+              </NFormItem>
+            </NForm>
+          </MobileQueryDrawer>
+        </template>
+        <template v-else>
+          <!-- Existing desktop layout -->
+          <div ref="queryCardRef" class="w-full">
+            <NCard class="query-card mb-4 p-2">
+              <NForm :model="queryForm" class="flex h-full items-center" inline>
+                <NSpace
+                  :size="[24, 16]"
+                  align="center"
+                  item-style="display: flex;"
+                >
+                  <NFormItem
+                    class="!mb-0 flex items-center"
+                    label="房间名"
+                    label-placement="left"
+                  >
+                    <NInput
+                      v-model:value="queryForm.title"
+                      class="w-40"
+                      placeholder="请输入房间名"
+                    />
+                  </NFormItem>
+                  <NFormItem
+                    class="!mb-0 flex items-center"
+                    label="房间号"
+                    label-placement="left"
+                  >
+                    <NInput
+                      v-model:value="queryForm.roomNo"
+                      class="w-40"
+                      placeholder="请输入房间号"
+                    />
+                  </NFormItem>
+                  <NFormItem
+                    class="!mb-0 flex items-center"
+                    label="关联区域"
+                    label-placement="left"
+                  >
+                    <NSelect
+                      v-model:value="queryForm.regionId"
+                      :options="regionOptions"
+                      class="w-40"
+                      clearable
+                    />
+                  </NFormItem>
+                  <NFormItem
+                    class="!mb-0 flex items-center"
+                    label="状态"
+                    label-placement="left"
+                  >
+                    <NSelect
+                      v-model:value="queryForm.enableStatus"
+                      :options="[
+                        { label: '已发布', value: true },
+                        { label: '待发布', value: false },
+                      ]"
+                      class="w-32"
+                      clearable
+                    />
+                  </NFormItem>
+
+                  <NSpace :size="[24, 0]" align="center">
+                    <NButtonGroup>
+                      <NButton type="primary" @click="handleSearch">
+                        搜索
+                      </NButton>
+                      <NButton @click="handleReset">重置</NButton>
+                      <NButton type="success" @click="handleAdd">
+                        新增客房
+                      </NButton>
+                    </NButtonGroup>
+                  </NSpace>
+                </NSpace>
+              </NForm>
+            </NCard>
+          </div>
+          <NCard class="table-card flex flex-col overflow-hidden">
+            <NDataTable
+              :columns="columns"
+              :data="rooms"
+              :loading="loading"
+              :pagination="pagination"
+              :scroll-x="1200"
+              :style="{ height: `${tableHeight}px` }"
+              class="flex-1 overflow-auto"
+              flex-height
+              striped
+              @update:page="handlePageChange"
+              @update:page-size="handlePageSizeChange"
+            />
+          </NCard>
+        </template>
+      </template>
+    </ResponsiveLayout>
 
     <Modal />
     <NModal

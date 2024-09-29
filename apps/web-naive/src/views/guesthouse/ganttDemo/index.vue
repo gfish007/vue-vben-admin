@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 import {
   NCard,
@@ -10,101 +10,133 @@ import {
   useThemeVars,
 } from 'naive-ui';
 
-import { guesthouseReservationApi } from '#/api/guesthouse/reservation';
-import { queryGuesthouseRoomsList } from '#/api/guesthouse/rooms';
+const startDate = ref(new Date(2023, 4, 1)); // 从2023年5月1日开始
 
-// 更新 startDate 的初始化
-const startDate = ref(null);
+const rooms = ref([
+  { id: 1, name: '标准间', number: '101' },
+  { id: 2, name: '标准间', number: '102' },
+  { id: 3, name: '大床房', number: '201' },
+  { id: 4, name: '大床房', number: '202' },
+  { id: 5, name: '套房', number: '301' },
+  { id: 6, name: '套房', number: '302' },
+  { id: 7, name: '家庭房', number: '401' },
+  { id: 8, name: '总统套房', number: '501' },
+]);
 
-// 添加一个新的函数来设置初始日期
-const setInitialDate = () => {
-  const today = new Date();
-  today.setDate(today.getDate() - 15);
-  startDate.value = today;
-};
+const bookings = ref([
+  {
+    endDate: new Date(2023, 4, 7),
+    guestName: '张三',
+    id: 1,
+    roomId: 1,
+    startDate: new Date(2023, 4, 5),
+  },
+  {
+    endDate: new Date(2023, 4, 10),
+    guestName: '张移',
+    id: 2,
+    roomId: 1,
+    startDate: new Date(2023, 4, 7),
+  },
+  {
+    endDate: new Date(2023, 4, 15),
+    guestName: '李四',
+    id: 2,
+    roomId: 2,
+    startDate: new Date(2023, 4, 8),
+  },
+  {
+    endDate: new Date(2023, 4, 18),
+    guestName: '王五',
+    id: 3,
+    roomId: 3,
+    startDate: new Date(2023, 4, 12),
+  },
+  {
+    endDate: new Date(2023, 4, 9),
+    guestName: '赵六',
+    id: 4,
+    roomId: 4,
+    startDate: new Date(2023, 4, 7),
+  },
+  {
+    endDate: new Date(2023, 4, 20),
+    guestName: '钱七',
+    id: 5,
+    roomId: 5,
+    startDate: new Date(2023, 4, 15),
+  },
+  {
+    endDate: new Date(2023, 4, 6),
+    guestName: '孙八',
+    id: 6,
+    roomId: 6,
+    startDate: new Date(2023, 4, 3),
+  },
+  {
+    endDate: new Date(2023, 4, 17),
+    guestName: '周九',
+    id: 7,
+    roomId: 7,
+    startDate: new Date(2023, 4, 10),
+  },
+  {
+    endDate: new Date(2023, 4, 25),
+    guestName: '吴十',
+    id: 8,
+    roomId: 8,
+    startDate: new Date(2023, 4, 20),
+  },
+  {
+    endDate: new Date(2023, 4, 24),
+    guestName: '郑十一',
+    id: 9,
+    roomId: 1,
+    startDate: new Date(2023, 4, 22),
+  },
+  {
+    endDate: new Date(2023, 4, 30),
+    guestName: '王十二',
+    id: 10,
+    roomId: 3,
+    startDate: new Date(2023, 4, 25),
+  },
+]);
 
-// 在组件挂载时设置初始日期
-onMounted(() => {
-  setInitialDate();
-  fetchBookings();
-});
-
-const rooms = ref([]);
-const bookings = ref([]);
-
-// 日期格式化函数
-const formatDateToString = (date) => {
-  if (!date) return ''; // 如果日期为 null 或 undefined，返回空字符串
-
-  // 获取本地时间的年月日
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  // 构建一个新的 Date 对象，使用 UTC 时间
-  const utcDate = new Date(Date.UTC(year, date.getMonth(), date.getDate()));
-
-  // 返回 ISO 格式的日期字符串，但只取日期部分
-  return utcDate.toISOString().split('T')[0];
-};
-
-// 获取房间列表
-const fetchRooms = async () => {
-  try {
-    const response = await queryGuesthouseRoomsList({
-      page: {
-        current: 1,
-        pageSize: 9999,
-      },
-      queryBody: {},
+// 新增方法：处理预订数据并生成日期对象
+const processBookings = computed(() => {
+  // 创建一个Map来存储每个房间每天的预订信息
+  const bookingMap = new Map();
+  // 初始化bookingMap
+  rooms.value.forEach((room) => {
+    visibleDates.value.forEach((date) => {
+      const key = `${room.id}-${date.toISOString().split('T')[0]}`;
+      bookingMap.set(key, []);
     });
-    rooms.value = response.records.map((room) => ({
-      id: room.id,
-      name: room.title,
-      number: room.roomNo,
-    }));
-  } catch (error) {
-    console.error('Error fetching rooms:', error);
-  }
-};
+  });
 
-// 获取预订列表
-const fetchBookings = async () => {
-  try {
-    const endDate = new Date(startDate.value);
-    endDate.setDate(endDate.getDate() + 30); // 设置为31天的范围
-    const response = await guesthouseReservationApi.list({
-      page: {
-        current: 1,
-        pageSize: 9999,
-      },
-      queryBody: {
-        gmtEnd: formatDateToString(endDate),
-        gmtStart: formatDateToString(startDate.value),
-      },
-    });
-    bookings.value = response.records.map((booking) => ({
-      endDate: booking.gmtEnd ? new Date(booking.gmtEnd) : null,
-      guestName: booking.realName,
-      id: booking.id,
-      phone: booking.phone,
-      price: booking.price == null ? null : Number(booking.price),
-      remark: booking.remark,
-      roomId: booking.roomId,
-      startDate: booking.gmtStart ? new Date(booking.gmtStart) : null,
-    }));
-  } catch (error) {
-    console.error('Error fetching bookings:', error);
-  }
-};
+  // 填充bookingMap
+  bookings.value.forEach((booking) => {
+    const startDate = new Date(booking.startDate);
+    const endDate = new Date(booking.endDate);
+    const currentDate = new Date(startDate);
 
-// 初始加载数据
-fetchRooms();
-fetchBookings();
+    while (currentDate <= endDate) {
+      const key = `${booking.roomId}-${currentDate.toISOString().split('T')[0]}`;
+      if (bookingMap.has(key)) {
+        const isStart = currentDate.getTime() === startDate.getTime();
+        const isEnd = currentDate.getTime() === endDate.getTime();
+        const type = isStart ? 'start' : isEnd ? 'end' : 'full';
 
-// 监听日期变化，刷新预订数据
-watch(startDate, () => {
-  fetchBookings();
+        bookingMap.get(key).push({
+          ...booking,
+          type,
+        });
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+  });
+  return bookingMap;
 });
 
 const visibleDates = computed(() => {
@@ -125,38 +157,20 @@ const moveBackward = () => {
   startDate.value = new Date(
     startDate.value.getTime() - 15 * 24 * 60 * 60 * 1000,
   );
-  fetchBookings();
 };
 
 const moveForward = () => {
   startDate.value = new Date(
     startDate.value.getTime() + 15 * 24 * 60 * 60 * 1000,
   );
-  fetchBookings();
 };
 
 const formatBookingInfo = (booking, room) => {
   if (!booking) return '';
-  let info = `房间: ${room.name} (${room.number})
-客人: ${booking.guestName}`;
-
-  if (booking.phone) {
-    info += `\n手机号: ${booking.phone}`;
-  }
-
-  info += `\n入住日期: ${formatFullDate(booking.startDate)}
+  return `房间: ${room.name} (${room.number})
+客人: ${booking.guestName}
+入住日期: ${formatFullDate(booking.startDate)}
 退房日期: ${formatFullDate(booking.endDate)}`;
-
-  // 检查 price 是否存在并且是一个数字
-  if (booking.price != null && !isNaN(booking.price)) {
-    info += `\n价格: ¥${Number(booking.price).toFixed(2)}`;
-  }
-
-  if (booking.remark) {
-    info += `\n备注: ${booking.remark}`;
-  }
-
-  return info;
 };
 
 const showBookingDetails = (room, date) => {
@@ -209,18 +223,14 @@ const roomTypes = computed(() => {
 });
 
 const filteredRooms = computed(() => {
-  const filteredRooms = rooms.value.filter((room) => {
-    const roomNumber = room.number?.toString().toLowerCase() || '';
-    const roomName = room.name?.toString().toLowerCase() || '';
-    const searchLower = searchQuery.value.toLowerCase();
-
+  return rooms.value.filter((room) => {
     const matchesSearch =
-      roomNumber.includes(searchLower) || roomName.includes(searchLower);
+      room.number.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      room.name.toLowerCase().includes(searchQuery.value.toLowerCase());
     const matchesType =
       !selectedRoomType.value || room.name === selectedRoomType.value;
     return matchesSearch && matchesType;
   });
-  return filteredRooms;
 });
 
 const themeVars = useThemeVars();
@@ -230,50 +240,6 @@ const cardStyle = computed(() => {
     backgroundColor: themeVars.value.cardColor,
     color: themeVars.value.textColor2,
   };
-});
-
-// 新增方法：处理预订数据并生成日期对象
-const processBookings = computed(() => {
-  // 创建一个Map来存储每个房间每天的预订信息
-  const bookingMap = new Map();
-  // 初始化bookingMap
-  rooms.value.forEach((room) => {
-    visibleDates.value.forEach((date) => {
-      const key = `${room.id}-${date.toISOString().split('T')[0]}`;
-      bookingMap.set(key, []);
-    });
-  });
-
-  // 填充bookingMap
-  bookings.value.forEach((booking) => {
-    const startDate = new Date(booking.startDate);
-    const endDate = new Date(booking.endDate);
-    const currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      const key = `${booking.roomId}-${currentDate.toISOString().split('T')[0]}`;
-      if (bookingMap.has(key)) {
-        const isStart = currentDate.getTime() === startDate.getTime();
-        const isEnd = currentDate.getTime() === endDate.getTime();
-        const type = isStart ? 'start' : (isEnd ? 'end' : 'full');
-
-        const bookingEntry = {
-          ...booking,
-          type,
-        };
-
-        if (type === 'end') {
-          // 如果是结束日期，将其添加到数组的开头
-          bookingMap.get(key).unshift(bookingEntry);
-        } else {
-          // 对于开始日期和中间日期，添加到数组的末尾
-          bookingMap.get(key).push(bookingEntry);
-        }
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-  });
-  return bookingMap;
 });
 </script>
 
@@ -417,9 +383,6 @@ const processBookings = computed(() => {
           }})
         </p>
         <p><strong>客人:</strong> {{ selectedBooking.guestName }}</p>
-        <p v-if="selectedBooking.phone">
-          <strong>手机号:</strong> {{ selectedBooking.phone }}
-        </p>
         <p>
           <strong>入住日期:</strong>
           {{ formatFullDate(selectedBooking.startDate) }}
@@ -427,14 +390,6 @@ const processBookings = computed(() => {
         <p>
           <strong>退房日期:</strong>
           {{ formatFullDate(selectedBooking.endDate) }}
-        </p>
-        <p
-          v-if="selectedBooking.price != null && !isNaN(selectedBooking.price)"
-        >
-          <strong>价格:</strong> ¥{{ Number(selectedBooking.price).toFixed(2) }}
-        </p>
-        <p v-if="selectedBooking.remark">
-          <strong>备注:</strong> {{ selectedBooking.remark }}
         </p>
       </template>
     </NModal>

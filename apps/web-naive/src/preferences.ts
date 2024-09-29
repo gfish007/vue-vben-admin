@@ -8,13 +8,20 @@ export const overridesPreferences = defineOverridesPreferences({
   // overrides
   app: {
     accessMode: 'backend',
-    // 是否开启检查更新
-    enableCheckUpdates: true,
+    authPageLayout: 'panel-center',
     // 检查更新的时间间隔，单位为分钟
     checkUpdatesInterval: 1,
     dynamicTitle: true,
+    // 是否开启检查更新
+    enableCheckUpdates: true,
     loginExpiredMode: 'modal',
-    watermark: true,
     name: import.meta.env.VITE_APP_TITLE,
+    watermark: true,
+  },
+  theme: {
+    builtinType: 'violet',
+    colorPrimary: 'hsl(245 82% 67%)',
+    mode: 'light',
+    semiDarkSidebar: false,
   },
 });
