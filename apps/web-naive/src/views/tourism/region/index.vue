@@ -423,9 +423,21 @@ const beforeUpload = (data: { file: UploadFileInfo }) => {
   return true;
 };
 
-// 添加一个新的函数来处理添加新项
+// 添加扩展内容的选项
+const extendContentOptions = [
+  { label: '景点', value: '景点' },
+  { label: '美食', value: '美食' },
+  { label: '活动', value: '活动' },
+  { label: '挑战', value: '挑战' },
+  { label: '山', value: '山' },
+  { label: '海', value: '海' },
+  { label: '优惠', value: '优惠' },
+  { label: '打卡', value: '打卡' },
+];
+
+// 修改 handleAddExtendContent 函数
 const handleAddExtendContent = () => {
-  return { key: '', value: '' };
+  return { key: extendContentOptions[0].value, value: '' };
 };
 
 // 初始加载数据
@@ -485,10 +497,11 @@ onMounted(() => {
         :columns="columns"
         :data="tableData"
         :loading="loading"
+        :max-height="`${tableHeight}px`"
+        :min-height="`${tableHeight}px`"
         :pagination="pagination"
         :scroll-x="1100"
         :single-line="false"
-        :style="{ height: `${tableHeight}px` }"
         flex-height
         striped
         @update:page="handlePageChange"
@@ -548,9 +561,9 @@ onMounted(() => {
           >
             <template #create-button-default> 添加扩展内容 </template>
             <template #default="{ value }">
-              <NInput
+              <NSelect
                 v-model:value="value.key"
-                placeholder="键"
+                :options="extendContentOptions"
                 style="width: 40%; margin-right: 4%"
               />
               <NInput

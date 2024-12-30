@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { FormInst, FormRules, UploadFileInfo } from 'naive-ui';
+import type { FormInst, UploadFileInfo } from 'naive-ui';
 
 import type { RegionActivityApi } from '#/api/core/regionActivity.types';
 
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, h, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
@@ -14,6 +14,7 @@ import {
   NForm,
   NFormItemGi,
   NGrid,
+  NIcon,
   NInput,
   NInputNumber,
   NSelect,
@@ -52,6 +53,12 @@ const editingRecord = ref<RegionActivityApi.RegionActivitySaveReq>({
   gmtEnd: null,
   gmtStart: null,
   id: undefined,
+  imageList: [], // 修改这里，从 activityImages 改为 imageList
+  priceInfo: {
+    oriPrice: null,
+    payFlag: false,
+    price: null,
+  },
   regionId: undefined,
   regionName: '',
   sortNo: 0,
@@ -59,7 +66,7 @@ const editingRecord = ref<RegionActivityApi.RegionActivitySaveReq>({
   title: '',
 });
 
-const rules: FormRules = {
+const rules = computed(() => ({
   contactInfo: {
     message: '请至少输入一种联系方式',
     required: true,
@@ -96,9 +103,43 @@ const rules: FormRules = {
       return value !== null && value !== undefined;
     },
   },
+  'priceInfo.oriPrice': {
+    required: editingRecord.value.priceInfo.payFlag,
+    trigger: ['blur', 'change'],
+    validator: (rule, value) => {
+      if (
+        editingRecord.value.priceInfo.payFlag &&
+        (value === null || value === undefined)
+      ) {
+        return new Error('请输入原价');
+      }
+      return true;
+    },
+  },
+  'priceInfo.payFlag': {
+    message: '请选择是否付费',
+    required: true,
+    trigger: 'change',
+    validator: (rule, value) => {
+      return value !== null && value !== undefined;
+    },
+  },
+  'priceInfo.price': {
+    required: editingRecord.value.priceInfo.payFlag,
+    trigger: ['blur', 'change'],
+    validator: (rule, value) => {
+      if (
+        editingRecord.value.priceInfo.payFlag &&
+        (value === null || value === undefined)
+      ) {
+        return new Error('请输入售价');
+      }
+      return true;
+    },
+  },
   regionId: { message: '请选择关联区域', required: true, trigger: 'change' },
   title: { message: '请输入标题', required: true, trigger: 'blur' },
-};
+}));
 
 const regionOptions = ref([]);
 
@@ -134,6 +175,14 @@ const fetchDetail = async (id: number) => {
       },
       gmtEnd: detail.gmtEnd ? new Date(detail.gmtEnd).getTime() : null,
       gmtStart: detail.gmtStart ? new Date(detail.gmtStart).getTime() : null,
+      imageList: detail.imageList || [], // 使用 imageList
+      priceInfo: {
+        oriPrice: detail.priceInfo?.oriPrice
+          ? Number(detail.priceInfo.oriPrice)
+          : null,
+        payFlag: detail.priceInfo?.payFlag ?? false,
+        price: detail.priceInfo?.price ? Number(detail.priceInfo.price) : null,
+      },
       sortNo:
         typeof detail.sortNo === 'string'
           ? Number.parseInt(detail.sortNo, 10) || 0
@@ -177,6 +226,7 @@ const handleSave = async () => {
       coverInfo: editingRecord.value.coverInfo,
       gmtEnd: formatDate(editingRecord.value.gmtEnd),
       gmtStart: formatDate(editingRecord.value.gmtStart),
+      imageList: editingRecord.value.imageList,
       sortNo: Number.parseInt(String(editingRecord.value.sortNo), 10) || 0,
     };
     await saveOrUpdateRegionActivity(submitData);
@@ -272,9 +322,119 @@ const computedSortNo = computed({
   },
 });
 
+// 添加活动图列表的文件上传处理
+const activityImagesList = ref<UploadFileInfo[]>([]);
+
+const handleActivityImagesUpload = async (options: {
+  file: UploadFileInfo;
+}) => {
+  const { file } = options;
+  if (file.file) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file.file);
+      const result = await uploadFile(formData);
+
+      const newImage: OssFileInfo = {
+        fileName: file.name,
+        fileUrl: result.fileUrl,
+        height: null,
+        videoFlag: false,
+        width: null,
+      };
+
+      editingRecord.value.imageList.push(newImage); // 使用 imageList
+
+      // Calculate image dimensions
+      const img = new Image();
+      img.addEventListener('load', () => {
+        newImage.width = img.width;
+        newImage.height = img.height;
+      });
+      img.src = result.fileUrl;
+
+      // Update activityImagesList without pushing a new item
+      const existingIndex = activityImagesList.value.findIndex(
+        (item) => item.id === result.fileUrl,
+      );
+      if (existingIndex === -1) {
+        activityImagesList.value.push({
+          id: result.fileUrl,
+          name: file.name,
+          status: 'finished',
+          url: result.fileUrl,
+        });
+      }
+    } catch (error) {
+      console.error('活动图上传失败:', error);
+    }
+  }
+};
+
+const handleActivityImagesRemove = (file: UploadFileInfo) => {
+  const index = editingRecord.value.imageList.findIndex(
+    // 使用 imageList
+    (img) => img.fileUrl === file.url,
+  );
+  if (index > -1) {
+    editingRecord.value.imageList.splice(index, 1); // 使用 imageList
+  }
+};
+
+// 添加图标组件
+const renderIcon = (icon: Component) => {
+  return () => h(NIcon, null, { default: () => h(icon) });
+};
+
 onMounted(() => {
   fetchRegionList();
 });
+
+// Update the watch effect
+watch(
+  () => editingRecord.value.imageList, // 使用 imageList
+  (newImages) => {
+    activityImagesList.value = newImages.map((img) => ({
+      id: img.fileUrl,
+      name: img.fileName,
+      status: 'finished',
+      url: img.fileUrl,
+    }));
+  },
+  { deep: true, immediate: true },
+);
+
+const payFlagOptions = [
+  { label: '免费', value: false },
+  { label: '付费', value: true },
+];
+
+// 添加这个函数来手动触发表单验证
+const validateForm = () => {
+  if (formRef.value) {
+    formRef.value.validate((errors) => {
+      if (errors) {
+        console.log('验证失败', errors);
+      } else {
+        console.log('验证成功');
+      }
+    });
+  }
+};
+
+// 监听 payFlag 的变化
+watch(
+  () => editingRecord.value.priceInfo.payFlag,
+  (newValue) => {
+    // 如果切换为不付费，清空价格字段
+    if (!newValue) {
+      editingRecord.value.priceInfo.oriPrice = null;
+      editingRecord.value.priceInfo.price = null;
+    }
+    // 手动触发表单验证
+    nextTick(validateForm);
+  },
+);
 </script>
 
 <template>
@@ -346,6 +506,43 @@ onMounted(() => {
         <NFormItemGi :span="12" label="活动标签" path="tags">
           <NDynamicTags v-model:value="editingRecord.tags" />
         </NFormItemGi>
+        <NFormItemGi :span="4" label="是否付费" path="priceInfo.payFlag">
+          <NSelect
+            v-model:value="editingRecord.priceInfo.payFlag"
+            :options="payFlagOptions"
+            placeholder="请选择是否付费"
+          />
+        </NFormItemGi>
+
+        <NFormItemGi :span="4" label="原价" path="priceInfo.oriPrice">
+          <NInputNumber
+            v-model:value="editingRecord.priceInfo.oriPrice"
+            :disabled="!editingRecord.priceInfo.payFlag"
+            :min="0"
+            :precision="2"
+            placeholder="请输入原价"
+          />
+        </NFormItemGi>
+
+        <NFormItemGi :span="4" label="售价" path="priceInfo.price">
+          <NInputNumber
+            v-model:value="editingRecord.priceInfo.price"
+            :disabled="!editingRecord.priceInfo.payFlag"
+            :min="0"
+            :precision="2"
+            placeholder="请输入售价"
+          />
+        </NFormItemGi>
+        <NFormItemGi :span="12" label="活动图列表">
+          <NUpload
+            v-model:file-list="activityImagesList"
+            :custom-request="handleActivityImagesUpload"
+            :max="8"
+            list-type="image-card"
+            multiple
+            @remove="handleActivityImagesRemove"
+          />
+        </NFormItemGi>
         <NFormItemGi :span="12" label="封面图" path="coverInfo.fileUrl">
           <NUpload
             v-model:file-list="fileList"
@@ -357,6 +554,7 @@ onMounted(() => {
             点击上传
           </NUpload>
         </NFormItemGi>
+
         <NFormItemGi :span="24" label="活动内容" path="content">
           <TEditor v-model="editingRecord.content" />
         </NFormItemGi>
@@ -365,4 +563,11 @@ onMounted(() => {
   </Modal>
 </template>
 
-<style scoped></style>
+<style scoped>
+.flex-col-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+</style>

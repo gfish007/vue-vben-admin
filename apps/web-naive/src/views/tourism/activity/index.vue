@@ -222,6 +222,42 @@ const columns = [
   { key: 'gmtModified', title: '更新时间', width: 170 },
   { key: 'rejectReason', title: '驳回原因' },
   {
+    key: 'priceInfo',
+    render: (row) => {
+      if (!row.priceInfo || !row.priceInfo.payFlag) {
+        return h('span', '免费');
+      }
+      const oriPrice =
+        row.priceInfo.oriPrice !== null && row.priceInfo.oriPrice !== undefined
+          ? `原价: ¥${Number(row.priceInfo.oriPrice).toFixed(2)}`
+          : null;
+      const price =
+        row.priceInfo.price !== null && row.priceInfo.price !== undefined
+          ? `售价: ¥${Number(row.priceInfo.price).toFixed(2)}`
+          : null;
+
+      if (oriPrice && price) {
+        return h('div', [
+          h(
+            NTag,
+            { style: 'margin-bottom: 4px;', type: 'warning' },
+            { default: () => oriPrice },
+          ),
+          h('br'),
+          h(NTag, { type: 'success' }, { default: () => price }),
+        ]);
+      } else if (oriPrice) {
+        return h(NTag, { type: 'warning' }, { default: () => oriPrice });
+      } else if (price) {
+        return h(NTag, { type: 'success' }, { default: () => price });
+      }
+
+      return h('span', '价格信息不完整');
+    },
+    title: '价格信息',
+    width: 150,
+  },
+  {
     fixed: 'right',
     key: 'actions',
     render: (row) =>
@@ -549,7 +585,9 @@ onMounted(() => {
               <NButtonGroup>
                 <NButton type="primary" @click="handleSearch">搜索</NButton>
                 <NButton @click="handleReset">重置</NButton>
-                <NButton type="success" @click="handleAdd"> 新增活动 </NButton>
+                <NButton type="success" @click="handleAdd">
+                  新增活动 {{ tableHeight }}
+                </NButton>
               </NButtonGroup>
             </NSpace>
           </NSpace>
@@ -561,9 +599,10 @@ onMounted(() => {
         :columns="columns"
         :data="tableData"
         :loading="loading"
+        :max-height="`${tableHeight}px`"
+        :min-height="`${tableHeight}px`"
         :pagination="pagination"
         :scroll-x="2200"
-        :style="{ height: `${tableHeight}px` }"
         class="flex-1 overflow-auto"
         flex-height
         striped

@@ -15,7 +15,10 @@ import {
   NDynamicTags,
   NForm,
   NFormItem,
+  NGrid,
+  NGridItem,
   NInput,
+  NInputNumber,
   NModal,
   NProgress,
   NSelect,
@@ -63,15 +66,17 @@ const pagination = reactive({
 const showModal = ref(false);
 const modalTitle = ref('');
 const editingRecord = ref<AttractionApi.AttractionSaveReq>({
-  coverList: [],
+  coverInfo: null, // 将 coverList 改为 coverInfo
   description: '',
   extendContent: {},
   id: undefined,
   location: '',
   locationInfo: {},
   regionId: undefined,
+  stars: '', // 改为字符串类型
   tagList: [],
   title: '',
+  views: 0,
 });
 
 // 表单规则
@@ -91,12 +96,26 @@ const rules: FormRules = {
     type: 'number',
     validator: (rule, value) => value !== null && value !== undefined,
   },
+  stars: {
+    max: 5,
+    message: '评分必须在0-5之间',
+    min: 0,
+    trigger: ['blur', 'change'],
+    type: 'number',
+  },
   tagList: {
     message: '请至少添加一个标签',
     min: 1,
+    trigger: ['blur', 'change'],
     type: 'array',
   },
-  title: { message: '请输入标题', required: true, trigger: 'blur' },
+  title: { message: '请输入标题', required: true, trigger: ['blur', 'change'] },
+  views: {
+    message: '查看人数必须大于或等于0',
+    min: 0,
+    trigger: ['blur', 'change'],
+    type: 'number',
+  },
 };
 
 const formRef = ref<FormInst | null>(null);
@@ -132,6 +151,8 @@ const handleEdit = async (row: AttractionApi.AttractionRecord) => {
         typeof detail.locationInfo === 'string'
           ? JSON.parse(detail.locationInfo)
           : detail.locationInfo || {},
+      stars: detail.stars === null ? 4.5 : Number(detail.stars), // 如果为 null，使用默认值 4.5
+      views: detail.views === null ? 100 : Number(detail.views), // 如果为 null，使用默认值 100
     };
     showModal.value = true;
     modalApi.open();
@@ -309,6 +330,30 @@ const columns = [
     width: 100,
   },
   {
+    key: 'stars',
+    render: (row: AttractionApi.AttractionRecord) => {
+      if (row.stars === null || row.stars === '') {
+        return h('span', null, '-');
+      }
+      const stars = Number.parseFloat(row.stars);
+      return h('span', null, isNaN(stars) ? '-' : `${stars.toFixed(1)} / 5`);
+    },
+    title: '评分',
+    width: 80,
+  },
+  {
+    key: 'views',
+    render: (row: AttractionApi.AttractionRecord) => {
+      if (row.views === null || row.views === undefined) {
+        return h('span', null, '-');
+      }
+      return h('span', null, row.views.toLocaleString());
+    },
+    title: '查看人数',
+    width: 100,
+  },
+  {
+    fixed: 'right',
     key: 'actions',
     render: (row: AttractionApi.AttractionRecord) => {
       return h(
@@ -396,28 +441,34 @@ const handlePageChange = (page: number) => {
 const handleAdd = () => {
   modalTitle.value = '新增景点';
   editingRecord.value = {
-    coverList: [],
+    coverInfo: null,
     description: '',
     extendContent: {},
     id: undefined,
     location: '',
     locationInfo: {},
     regionId: undefined,
+    stars: 4.5, // 设置默认评分为 4.5
     tagList: [],
     title: '',
+    views: 100, // 设置默认查看人数为 100
   };
   showModal.value = true;
   modalApi.open();
 };
 
-// 计算属性：封面文件
+// 计算性：封面文件
 const coverFileList = computed<UploadFileInfo[]>(() => {
-  return editingRecord.value.coverList.map((url, index) => ({
-    id: `cover-${index}`,
-    name: `封面${index + 1}`,
-    status: 'finished',
-    url,
-  }));
+  return editingRecord.value.coverInfo
+    ? [
+        {
+          id: 'cover',
+          name: editingRecord.value.coverInfo.fileName,
+          status: 'finished',
+          url: editingRecord.value.coverInfo.fileUrl,
+        },
+      ]
+    : [];
 });
 
 // 添加上传进状态
@@ -427,40 +478,50 @@ const isUploading = ref(false);
 // 更新处理文件上传函数
 const handleFileUpload = async (options: { fileList: UploadFileInfo[] }) => {
   const { fileList } = options;
-  const newFiles = fileList.filter((file) => file.status === 'pending');
+  const newFile = fileList.find((file) => file.status === 'pending');
 
-  for (const file of newFiles) {
-    if (file.file) {
-      try {
-        isUploading.value = true;
-        uploadProgress.value = 0;
-        const formData = new FormData();
-        formData.append('file', file.file);
-        const result = await uploadFile(formData, (progress) => {
-          uploadProgress.value = progress;
-        });
-        editingRecord.value.coverList.push(result.fileUrl);
-      } catch (error) {
-        console.error('文件上传失败:', error);
-        message.error(`文件 ${file.name} 上传失败`);
-      } finally {
-        isUploading.value = false;
-      }
+  if (newFile && newFile.file) {
+    try {
+      isUploading.value = true;
+      uploadProgress.value = 0;
+      const formData = new FormData();
+      formData.append('file', newFile.file);
+      const result = await uploadFile(formData, (progress) => {
+        uploadProgress.value = progress;
+      });
+
+      // 创建图片对象以获取尺寸
+      const img = new Image();
+      img.src = result.fileUrl;
+      await new Promise((resolve) => {
+        img.addEventListener('load', resolve);
+      });
+
+      const ossFileInfo: OssFileInfo = {
+        fileName: result.fileName,
+        fileUrl: result.fileUrl,
+        height: img.height,
+        videoFlag: false,
+        width: img.width,
+      };
+
+      editingRecord.value.coverInfo = ossFileInfo;
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      message.error(`文件 ${newFile.name} 上传失败`);
+    } finally {
+      isUploading.value = false;
     }
   }
 
-  if (newFiles.length > 0) {
+  if (newFile) {
     message.success('文件上传成功');
   }
 };
 
 // 处理文件删除
-const handleFileRemove = (file: UploadFileInfo) => {
-  console.log('handleFileRemove', file);
-  const index = editingRecord.value.coverList.indexOf(file.file.url);
-  if (index !== -1) {
-    editingRecord.value.coverList.splice(index, 1);
-  }
+const handleFileRemove = () => {
+  editingRecord.value.coverInfo = null;
 };
 
 // 文件上传前的验证
@@ -468,14 +529,14 @@ const beforeUpload = (data: {
   file: UploadFileInfo;
   fileList: UploadFileInfo[];
 }) => {
-  const { file, fileList } = data;
+  const { file } = data;
   const isImage = file.type?.startsWith('image/');
   if (!isImage) {
     message.error('只能上传图片文件');
     return false;
   }
-  if (fileList.length > 3) {
-    message.error('最多只能上传3张封面图');
+  if (editingRecord.value.coverInfo) {
+    message.error('只能上传一张封面图');
     return false;
   }
   return true;
@@ -566,7 +627,7 @@ onMounted(async () => {
               </NFormItem>
               <NFormItem
                 class="mb-0 flex items-center"
-                label="可用状态"
+                label="可状态"
                 label-placement="left"
               >
                 <NSelect
@@ -596,9 +657,10 @@ onMounted(async () => {
         :columns="columns"
         :data="tableData"
         :loading="loading"
-        :max-height="tableHeight"
+        :max-height="`${tableHeight}px`"
+        :min-height="`${tableHeight}px`"
         :pagination="pagination"
-        :scroll-x="1100"
+        :scroll-x="1800"
         striped
         @update:page="handlePageChange"
       />
@@ -618,62 +680,90 @@ onMounted(async () => {
           label-width="100px"
           require-mark-placement="right-hanging"
         >
-          <NSpace :size="24" align="start">
-            <NFormItem label="关联区域" path="regionId">
-              <NSelect
-                v-model:value="editingRecord.regionId"
-                :options="regionOptions"
-                clearable
-                filterable
-                placeholder="请选择关联区域"
-                style="width: 200px"
-              />
-            </NFormItem>
-            <NFormItem label="标题" path="title">
-              <NInput
-                v-model:value="editingRecord.title"
-                style="width: 200px"
-              />
-            </NFormItem>
-          </NSpace>
-
-          <NFormItem label="标签列" path="tagList">
-            <NDynamicTags v-model:value="editingRecord.tagList" />
-          </NFormItem>
-
-          <NFormItem label="封面" path="coverList">
-            <div class="relative w-full">
-              <NUpload
-                :before-upload="beforeUpload"
-                :file-list="coverFileList"
-                :max="3"
-                class="w-full"
-                list-type="image-card"
-                multiple
-                @change="handleFileUpload"
-                @remove="handleFileRemove"
-              >
-                上传图片
-                <NProgress
-                  v-if="isUploading"
-                  :height="6"
-                  :percentage="uploadProgress"
-                  :show-indicator="false"
-                  class="absolute inset-x-0 bottom-0 z-10"
-                  processing
+          <NGrid :cols="24" :x-gap="24">
+            <NGridItem :span="12">
+              <NFormItem label="关联区域" path="regionId">
+                <NSelect
+                  v-model:value="editingRecord.regionId"
+                  :options="regionOptions"
+                  clearable
+                  filterable
+                  placeholder="请选择关联区域"
                 />
-              </NUpload>
-            </div>
-          </NFormItem>
-          <NFormItem class="w-full" label="景点概述" path="description">
-            <TEditor v-model="editingRecord.description" />
-          </NFormItem>
-          <NFormItem class="w-full" label="位置信息" path="locationInfo">
-            <LocationMap
-              v-model:location="editingRecord.location"
-              v-model:location-info="editingRecord.locationInfo"
-            />
-          </NFormItem>
+              </NFormItem>
+            </NGridItem>
+            <NGridItem :span="12">
+              <NFormItem label="标题" path="title">
+                <NInput v-model:value="editingRecord.title" />
+              </NFormItem>
+            </NGridItem>
+            <NGridItem :span="12">
+              <NFormItem label="标签列" path="tagList">
+                <NDynamicTags v-model:value="editingRecord.tagList" />
+              </NFormItem>
+            </NGridItem>
+            <NGridItem :span="12">
+              <NFormItem label="评分" path="stars">
+                <NInputNumber
+                  v-model:value="editingRecord.stars"
+                  :max="5"
+                  :min="0"
+                  :precision="1"
+                  :step="0.1"
+                  placeholder="请输入评分（0-5）"
+                />
+              </NFormItem>
+            </NGridItem>
+            <NGridItem :span="12">
+              <NFormItem label="查看人数" path="views">
+                <NInputNumber
+                  v-model:value="editingRecord.views"
+                  :min="0"
+                  :step="1"
+                  placeholder="请输入查看人数"
+                />
+              </NFormItem>
+            </NGridItem>
+
+            <NGridItem :span="24">
+              <NFormItem label="封面" path="coverInfo">
+                <div class="relative w-full">
+                  <NUpload
+                    :before-upload="beforeUpload"
+                    :file-list="coverFileList"
+                    :max="1"
+                    class="w-full"
+                    list-type="image-card"
+                    @change="handleFileUpload"
+                    @remove="handleFileRemove"
+                  >
+                    上传图片
+                  </NUpload>
+                  <NProgress
+                    v-if="isUploading"
+                    :height="6"
+                    :percentage="uploadProgress"
+                    :show-indicator="false"
+                    class="absolute inset-x-0 bottom-0 z-10"
+                    processing
+                  />
+                </div>
+              </NFormItem>
+            </NGridItem>
+            <NGridItem :span="24">
+              <NFormItem class="w-full" label="景点概述" path="description">
+                <TEditor v-model="editingRecord.description" />
+              </NFormItem>
+            </NGridItem>
+            <NGridItem :span="24">
+              <NFormItem class="w-full" label="位置信息" path="locationInfo">
+                <LocationMap
+                  v-model:location="editingRecord.location"
+                  v-model:location-info="editingRecord.locationInfo"
+                />
+              </NFormItem>
+            </NGridItem>
+          </NGrid>
         </NForm>
       </div>
     </Modal>
@@ -695,4 +785,8 @@ onMounted(async () => {
   </Page>
 </template>
 
-<style scoped></style>
+<style scoped>
+.n-upload {
+  overflow: visible;
+}
+</style>

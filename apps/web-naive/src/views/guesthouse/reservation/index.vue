@@ -389,9 +389,10 @@ onMounted(() => {
           :columns="columns"
           :data="tableData"
           :loading="tableLoading"
+          :max-height="`${tableHeight}px`"
+          :min-height="`${tableHeight}px`"
           :pagination="pagination"
           :scroll-x="1200"
-          :style="{ height: `${tableHeight}px` }"
           class="flex-1 overflow-auto"
           flex-height
           striped

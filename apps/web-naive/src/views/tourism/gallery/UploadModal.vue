@@ -60,9 +60,20 @@ const handleUpload = async ({ file, onError, onFinish, onProgress }: any) => {
       onProgress({ percent: progress });
     });
 
+    console.log('resp', result);
+
     file.url = result.fileUrl;
-    file.name = result.fileName; // Save the fileName returned from the API
+    file.name = result.fileName;
     file.status = 'finished';
+
+    // Calculate and add height and width for images
+    if (type.value === 'picture') {
+      const { height, width } = await getImageDimensions(
+        URL.createObjectURL(file.file),
+      );
+      file.height = height;
+      file.width = width;
+    }
 
     if (type.value === 'video' && previewImageList.value.length === 0) {
       // 获取视频第5帧作为预览图
@@ -207,7 +218,9 @@ const handleUploadPreview = async ({
     file.status = 'finished';
 
     onFinish();
-    const { height, width } = await getImageDimensions(file.url as string);
+    const { height, width } = await getImageDimensions(
+      URL.createObjectURL(file.file),
+    );
     file.height = height;
     file.width = width;
     message.success('预览图上传成功');
@@ -225,22 +238,34 @@ async function handleSave() {
   }
 
   try {
-    console.info('Saving with attractionId:', props.attractionId); // Log attractionId before saving
+    console.info('Saving with attractionId:', props.attractionId);
     const galleries: AttractionGalleryAddReq[] = await Promise.all(
       fileList.value.map(async (file, index) => {
-        // const { height, width } = await getImageDimensions(file.url as string);
+        console.log('Processing file:', file);
+
+        // 如果高度或宽度为空，重新获取尺寸
+        if (!file.height || !file.width) {
+          const { height, width } = await getImageDimensions(
+            file.url as string,
+          );
+          file.height = height;
+          file.width = width;
+        }
+
         return {
           attractionId: props.attractionId,
           fileName: file.name,
           fileType: type.value === 'picture' ? 'PICTURE' : 'VIDEO',
           fileUrl: file.url as string,
           height: file.height,
-          mark: '', // 可以添加一个输入框让用户输入标记
+          mark: '',
           sortNo: index + 1,
           width: file.width,
         };
       }),
     );
+
+    console.log('Galleries to save:', galleries);
 
     if (type.value === 'video' && previewImageList.value.length > 0) {
       const previewImage = previewImageList.value[0];
@@ -266,19 +291,26 @@ function getImageDimensions(
   return new Promise((resolve, reject) => {
     if (type.value === 'picture') {
       const img = new Image();
-      img.crossOrigin = 'anonymous'; // 添加这行以解决跨域问题
-      img.addEventListener('load', () =>
-        resolve({ height: img.height, width: img.width }),
-      );
-      img.onerror = reject;
+      img.addEventListener('load', () => {
+        resolve({ height: img.height, width: img.width });
+        if (typeof source !== 'string') URL.revokeObjectURL(url);
+      });
+      img.onerror = (error) => {
+        console.error('Image load error:', error);
+        resolve({ height: 0, width: 0 });
+        if (typeof source !== 'string') URL.revokeObjectURL(url);
+      };
       img.src = url;
     } else {
       const video = document.createElement('video');
-      video.crossOrigin = 'anonymous'; // 添加这行以解决跨域问题
+      video.crossOrigin = 'anonymous';
       video.addEventListener('loadedmetadata', () =>
         resolve({ height: video.videoHeight, width: video.videoWidth }),
       );
-      video.onerror = reject;
+      video.addEventListener('error', (error) => {
+        console.error('Video load error:', error);
+        resolve({ height: 0, width: 0 });
+      });
       video.src = url;
     }
   });
