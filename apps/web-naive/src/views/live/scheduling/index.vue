@@ -22,6 +22,7 @@ import {
   NSpace,
   NTimePicker,
   useMessage,
+  NTag,
 } from 'naive-ui';
 
 import { queryLiveMemberList } from '#/api/core/liveMember';
@@ -183,10 +184,11 @@ const loadMembers = async () => {
         role: memberQuery.role,
       },
     });
-    // 确保每个成员都有角色信息
+    // 确保每个成员都有必要的字段
     memberList.value = result.records.map((member) => ({
       ...member,
       role: member.role || 'ZB', // 如果没有角色则默认为'ZB'
+      memberName: member.name, // 添加 memberName 字段
     }));
   } catch (error) {
     console.error('加载成员失败:', error);
@@ -202,7 +204,22 @@ const handleEdit = async (row: LiveSchedulingApi.LiveSchedulingRecord) => {
   try {
     modalTitle.value = '编辑直播排班';
     const detail = await getLiveSchedulingDetail(row.id);
-    editingRecord.value = { ...detail };
+    
+    // 格式化时间数据
+    const formattedDetail = {
+      ...detail,
+      gmtPlay: detail.gmtPlay ? new Date(detail.gmtPlay).getTime() : null,
+      gmtStart: detail.gmtStart ? new Date(detail.gmtStart).getTime() : null,
+      gmtEnd: detail.gmtEnd ? new Date(detail.gmtEnd).getTime() : null,
+      schedulingMembers: detail.schedulingMembers?.map(member => ({
+        ...member,
+        gmtStart: member.gmtStart ? new Date(member.gmtStart).getTime() : null,
+        gmtEnd: member.gmtEnd ? new Date(member.gmtEnd).getTime() : null,
+        memberName: member.memberName || '', // 确保 memberName 字段存在
+      })) || []
+    };
+
+    editingRecord.value = formattedDetail;
     showModal.value = true;
   } catch (error) {
     console.error('获取详情失败:', error);
@@ -226,19 +243,86 @@ const handleDelete = async (row: LiveSchedulingApi.LiveSchedulingRecord) => {
   }
 };
 
+// 添加时间格式化工具函数
+const formatDateTime = (date: string | number | null, includeTime = true): string | null => {
+  if (!date) return null;
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+  
+  if (!includeTime) return dateStr;
+  
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${dateStr} ${hh}:${mm}:${ss}`;
+};
+
+// 添加时间范围验证函数
+const validateMemberTime = (memberTime: number | null, type: 'start' | 'end'): { valid: boolean; message?: string } => {
+  if (!memberTime) return { valid: false, message: '请选择时间' };
+  if (!editingRecord.value.gmtStart || !editingRecord.value.gmtEnd) {
+    return { valid: false, message: '请先设置排班计划的时间范围' };
+  }
+
+  const planStart = editingRecord.value.gmtStart;
+  const planEnd = editingRecord.value.gmtEnd;
+
+  if (type === 'start' && (memberTime < planStart || memberTime > planEnd)) {
+    return { valid: false, message: '开始时间必须在排班计划时间范围内' };
+  }
+
+  if (type === 'end' && (memberTime < planStart || memberTime > planEnd)) {
+    return { valid: false, message: '结束时间必须在排班计划时间范围内' };
+  }
+
+  return { valid: true };
+};
+
 // 修改 handleSave 函数
 const handleSave = async () => {
   if (!formRef.value) return;
   saveLoading.value = true;
   try {
     await formRef.value.validate();
-    await saveOrUpdateLiveScheduling(editingRecord.value);
+
+    // 验证所有成员的时间范围
+    const invalidMembers = editingRecord.value.schedulingMembers.filter(member => {
+      const startValidation = validateMemberTime(member.gmtStart, 'start');
+      const endValidation = validateMemberTime(member.gmtEnd, 'end');
+      return !startValidation.valid || !endValidation.valid;
+    });
+
+    if (invalidMembers.length > 0) {
+      message.error('存在成员时间范围超出排班计划时间范围，请检查');
+      return;
+    }
+    
+    // 创建数据副本进行格式化
+    const formattedRecord = {
+      ...editingRecord.value,
+      gmtPlay: formatDateTime(editingRecord.value.gmtPlay, false),
+      gmtStart: formatDateTime(editingRecord.value.gmtStart, true),
+      gmtEnd: formatDateTime(editingRecord.value.gmtEnd, true),
+      schedulingMembers: editingRecord.value.schedulingMembers.map(member => ({
+        ...member,
+        gmtStart: formatDateTime(member.gmtStart, true),
+        gmtEnd: formatDateTime(member.gmtEnd, true),
+        memberName: memberList.value.find(m => m.id === member.memberId)?.memberName || ''
+      }))
+    };
+
+    console.log('Formatted data to save:', formattedRecord);
+    await saveOrUpdateLiveScheduling(formattedRecord);
+    
     message.success(editingRecord.value.id ? '编辑成功' : '新增成功');
     showModal.value = false;
     fetchData();
   } catch (error) {
     console.error('保存失败:', error);
-    message.error('保存失败，请检查表单');
+    // message.error('保存失败，请检查表单');
   } finally {
     saveLoading.value = false;
   }
@@ -278,8 +362,20 @@ const formatDate = (dateString: string) => {
   )}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
+// 简化的状态判断函数
+const getSchedulingStatus = (startTime: string, endTime: string) => {
+  const now = Date.now();
+  const start = new Date(startTime).getTime();
+  const end = new Date(endTime).getTime();
+
+  if (now < start) return { type: 'info', text: '未开始' };
+  if (now > end) return { type: 'error', text: '已结束' };
+  return { type: 'success', text: '进行中' };
+};
+
 // 表格列定义
 const columns = [
+
   {
     key: 'liveAccountId',
     render: (row: LiveSchedulingApi.LiveSchedulingRecord) => {
@@ -303,23 +399,28 @@ const columns = [
     width: 150,
   },
   {
+    key: 'status',
+    title: '状态',
+    width: 90,
+    render: (row) => h(NTag, {
+      type: getSchedulingStatus(row.gmtStart, row.gmtEnd).type,
+      round: true,
+    }, () => getSchedulingStatus(row.gmtStart, row.gmtEnd).text)
+  },
+  {
     key: 'gmtPlay',
     title: '开播日期',
     width: 120,
   },
   {
     key: 'gmtStart',
-    render: (row: LiveSchedulingApi.LiveSchedulingRecord) =>
-      formatDate(row.gmtStart),
     title: '开始时间',
-    width: 170,
+    width: 180,
   },
   {
     key: 'gmtEnd',
-    render: (row: LiveSchedulingApi.LiveSchedulingRecord) =>
-      formatDate(row.gmtEnd),
     title: '结束时间',
-    width: 170,
+    width: 180,
   },
   {
     key: 'nobodyFlag',
@@ -389,13 +490,9 @@ const handlePageChange = (page: number) => {
 // 处理新增
 const handleAdd = () => {
   modalTitle.value = '新增直播排班';
-  const now = new Date();
   editingRecord.value = {
-    // gmtEnd: now.toTimeString().slice(0, 8), // "HH:mm:ss"
-    // gmtPlay: now.toISOString().split('T')[0], // "yyyy-MM-dd"
-    // gmtStart: now.toTimeString().slice(0, 8),
-    gmtEnd: null, // "HH:mm:ss"
-    gmtPlay: null, // "yyyy-MM-dd"
+    gmtEnd: null,
+    gmtPlay: null,
     gmtStart: null,
     id: null,
     liveAccountId: undefined,
@@ -426,7 +523,8 @@ const handleConfirmMembers = () => {
       gmtEnd: editingRecord.value.gmtEnd,
       gmtStart: editingRecord.value.gmtStart,
       memberId: member.id,
-      role: member.role || 'ZB', // 使用成员原有的角色，如果没有则默认为'ZB'
+      memberName: member.memberName || member.name || '', // 优先使用 memberName，否则使用 name
+      role: member.role || 'ZB',
     }));
 
   editingRecord.value.schedulingMembers.push(...newMembers);
@@ -456,44 +554,58 @@ const handleMemberSelect = (keys: number[]) => {
 // 已选择成员列表的列定义
 const selectedMemberColumns = [
   {
-    key: 'name',
+    key: 'memberName',
     title: '名称',
-    width: 120,
+    width: 100,
+    render: (row) => row.memberName || '', // 直接使用 memberName 字段
   },
-
   {
     key: 'gmtStart',
     render: (row, index) => {
-      return h(NTimePicker, {
+      return h(NDatePicker, {
         clearable: true,
-        format: 'HH:mm',
+        type: 'datetime',
+        value: editingRecord.value.schedulingMembers[index].gmtStart,
         onUpdateValue: (value) => {
+          const validation = validateMemberTime(value, 'start');
+          if (!validation.valid) {
+            message.warning(validation.message);
+            return;
+          }
           editingRecord.value.schedulingMembers[index].gmtStart = value;
         },
-        type: 'time',
-        value: editingRecord.value.schedulingMembers[index].gmtStart,
-        valueFormat: 'HH:mm:ss',
+        style: 'width: 200px',
+        // 设置可选时间范围
+        min: editingRecord.value.gmtStart || undefined,
+        max: editingRecord.value.gmtEnd || undefined
       });
     },
     title: '开始时间',
-    width: 150,
+    width: 200,
   },
   {
     key: 'gmtEnd',
     render: (row, index) => {
-      return h(NTimePicker, {
+      return h(NDatePicker, {
         clearable: true,
-        format: 'HH:mm',
+        type: 'datetime',
+        value: editingRecord.value.schedulingMembers[index].gmtEnd,
         onUpdateValue: (value) => {
+          const validation = validateMemberTime(value, 'end');
+          if (!validation.valid) {
+            message.warning(validation.message);
+            return;
+          }
           editingRecord.value.schedulingMembers[index].gmtEnd = value;
         },
-        type: 'time',
-        value: editingRecord.value.schedulingMembers[index].gmtEnd,
-        valueFormat: 'HH:mm:ss',
+        style: 'width: 200px',
+        // 设置可选时间范围
+        min: editingRecord.value.gmtStart || undefined,
+        max: editingRecord.value.gmtEnd || undefined
       });
     },
     title: '结束时间',
-    width: 150,
+    width: 200,
   },
   {
     key: 'role',
@@ -677,27 +789,22 @@ const handleReset = () => {
                 clearable
                 style="width: 200px"
                 type="date"
-                value-format="yyyy-MM-dd"
               />
             </NFormItem>
             <NFormItem label="开始时间" path="gmtStart">
-              <NTimePicker
+              <NDatePicker
                 v-model:value="editingRecord.gmtStart"
                 clearable
-                format="HH:mm"
                 style="width: 200px"
-                type="time"
-                value-format="HH:mm:ss"
+                type="datetime"
               />
             </NFormItem>
             <NFormItem label="结束时间" path="gmtEnd">
-              <NTimePicker
+              <NDatePicker
                 v-model:value="editingRecord.gmtEnd"
                 clearable
-                format="HH:mm"
                 style="width: 200px"
-                type="time"
-                value-format="HH:mm:ss"
+                type="datetime"
               />
             </NFormItem>
           </div>

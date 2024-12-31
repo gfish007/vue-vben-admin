@@ -36,6 +36,13 @@
       "reservation": "预定管理",
       "gantt": "入住看板",
       "ganttDemo": "看板演示"
+    },
+    "live": {
+      "title": "直播管理",
+      "account": "直播账号",
+      "location": "直播地点",
+      "scheduling": "直播排期",
+      "member": "直播成员"
     }
   }
 }

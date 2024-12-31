@@ -43,10 +43,27 @@ const queryForm = reactive<LiveAccountApi.QueryParams['queryBody']>({
 // 表格数据
 const tableData = ref<LiveAccountApi.LiveAccountRecord[]>([]);
 const loading = ref(false);
+
 const pagination = reactive({
   page: 1,
   pageSize: 10,
-  total: 0,
+  pageCount: 1,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50],
+  // 添加这些必要的属性
+  itemCount: 0,  // 总条数
+  total: 0,      // 总条数
+  prefix: ({ itemCount }: { itemCount: number }) => `共 ${itemCount} 条`,
+  
+  onChange: (page: number) => {
+    pagination.page = page;
+    fetchData();
+  },
+  onUpdatePageSize: (pageSize: number) => {
+    pagination.pageSize = pageSize;
+    pagination.page = 1;
+    fetchData();
+  }
 });
 
 // 模态框相关
@@ -58,7 +75,7 @@ const editingRecord = ref<LiveAccountApi.LiveAccountRecord>({
   department: '',
   id: 0,
   shopName: '',
-  uId: '',
+  uid: '',
 });
 
 // 表单规则
@@ -67,7 +84,7 @@ const rules: FormRules = {
   channel: { message: '请输入渠道', required: true, trigger: 'blur' },
   department: { message: '请输入部门', required: true, trigger: 'blur' },
   shopName: { message: '请输入店铺名', required: true, trigger: 'blur' },
-  uId: { message: '请输入账号UID', required: true, trigger: 'blur' },
+  uid: { message: '请输入账号UID', required: true, trigger: 'blur' },
 };
 
 const formRef = ref<FormInst | null>(null);
@@ -132,7 +149,7 @@ const handleSave = async () => {
   }
 };
 
-// 查询数据
+
 const fetchData = async () => {
   loading.value = true;
   try {
@@ -144,13 +161,13 @@ const fetchData = async () => {
       queryBody: queryForm,
     });
 
-    // 详细打印数据以便调试
-    console.log('API Response:', result);
-    console.log('Records:', result.records);
-
+    // 更新分页信息
+    pagination.total = result.total;
+    pagination.itemCount = result.total;  // 这个很重要
+    pagination.pageCount = result.pages;  // 总页数
+    
     if (Array.isArray(result.records)) {
       tableData.value = result.records;
-      pagination.total = result.total;
     } else {
       message.error('返回数据格式错误');
       tableData.value = [];
@@ -173,7 +190,7 @@ const columns = [
     width: 150,
   },
   {
-    key: 'uId',
+    key: 'uid',
     title: '账号UID',
     width: 150,
   },
@@ -248,12 +265,6 @@ const handleSearch = () => {
   fetchData();
 };
 
-// 处理分页变化
-const handlePageChange = (page: number) => {
-  pagination.page = page;
-  fetchData();
-};
-
 // 处理新增
 const handleAdd = () => {
   modalTitle.value = '新增直播账户';
@@ -263,7 +274,7 @@ const handleAdd = () => {
     department: '',
     id: null,
     shopName: '',
-    uId: '',
+    uid: '',
   };
   showModal.value = true;
 };
@@ -338,12 +349,12 @@ onMounted(() => {
         :loading="loading"
         :max-height="`${tableHeight}px`"
         :min-height="`${tableHeight}px`"
+        remote
         :pagination="pagination"
         :scroll-x="1100"
         :single-line="false"
         flex-height
         striped
-        @update:page="handlePageChange"
       />
     </NCard>
 
@@ -364,8 +375,8 @@ onMounted(() => {
         <NFormItem label="账号" path="accountName">
           <NInput v-model:value="editingRecord.accountName" />
         </NFormItem>
-        <NFormItem label="账号UID" path="uId">
-          <NInput v-model:value="editingRecord.uId" />
+        <NFormItem label="账号UID" path="uid">
+          <NInput v-model:value="editingRecord.uid" />
         </NFormItem>
         <NFormItem label="部门" path="department">
           <NInput v-model:value="editingRecord.department" />

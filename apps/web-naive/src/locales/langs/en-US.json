@@ -4,6 +4,13 @@
       "title": "Demos",
       "naive": "Naive UI",
       "table": "Table"
+    },
+    "live": {
+      "title": "Live",
+      "account": "Account",
+      "location": "Location",
+      "scheduling": "Scheduling",
+      "member": "Member"
     }
   }
 }

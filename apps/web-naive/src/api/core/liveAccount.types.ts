@@ -2,7 +2,7 @@ export namespace LiveAccountApi {
   export interface LiveAccountRecord {
     id: null | number;
     accountName: string;
-    uId: string;
+    uid: string;
     department: string;
     channel: string;
     shopName: string;
