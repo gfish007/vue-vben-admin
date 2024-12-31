@@ -60,6 +60,12 @@
     "update:deps": "pnpm update --latest --recursive",
     "version": "pnpm exec changeset version && pnpm install --no-frozen-lockfile"
   },
+  "dependencies": {
+    "@tinymce/tinymce-vue": "^6.0.1",
+    "quill": "^2.0.2",
+    "tinymce": "^7.3.0",
+    "vue3-quill": "^0.3.1"
+  },
   "devDependencies": {
     "@changesets/changelog-github": "catalog:",
     "@changesets/cli": "catalog:",
@@ -116,11 +122,5 @@
       "canvas",
       "node-gyp"
     ]
-  },
-  "dependencies": {
-    "@tinymce/tinymce-vue": "^6.0.1",
-    "quill": "^2.0.2",
-    "tinymce": "^7.3.0",
-    "vue3-quill": "^0.3.1"
   }
 }
