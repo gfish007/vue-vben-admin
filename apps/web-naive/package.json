@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
+    "@types/video.js": "^7.3.58",
     "@vben/access": "workspace:*",
     "@vben/common-ui": "workspace:*",
     "@vben/constants": "workspace:*",
@@ -44,9 +45,13 @@
     "@vueuse/core": "catalog:",
     "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-vue": "^5.1.12",
+    "hls.js": "^1.5.18",
     "naive-ui": "catalog:",
     "pinia": "catalog:",
+    "video.js": "^8.21.0",
     "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue-router": "catalog:",
+    "xgplayer": "^3.0.20",
+    "xgplayer-hls.js": "^3.0.20"
   }
 }

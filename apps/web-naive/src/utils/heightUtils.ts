@@ -1,44 +1,17 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { ref, computed } from 'vue';
 
-export const useDynamicHeight = (queryCardRef) => {
-  const pageHeight = ref(window.innerHeight);
+export function useDynamicHeight(queryCardRef: any) {
   const queryCardHeight = ref(0);
-
   const tableHeight = computed(() => {
-    const systemBarHeight = 50;
-    const tabBarHeight = 37;
-    const bottomHeight = 32;
-    const titleCardHeight = 84;
-    const cardMargin = 16 * 2 + 20 * 2;
-    return (
-      pageHeight.value -
-      systemBarHeight -
-      tabBarHeight -
-      bottomHeight -
-      titleCardHeight -
-      queryCardHeight.value -
-      cardMargin * 2
-    );
+    const minHeight = 300;
+    const windowHeight = window.innerHeight;
+    const otherHeight = 300; // 预估其他元素高度（头部、页脚等）
+    const height = windowHeight - queryCardHeight.value - otherHeight;
+    return Math.max(height, minHeight);
   });
 
-  onMounted(() => {
-    if (queryCardRef.value) {
-      queryCardHeight.value = queryCardRef.value.offsetHeight;
-    }
-
-    const updateHeight = () => {
-      pageHeight.value = window.innerHeight;
-      if (queryCardRef.value) {
-        queryCardHeight.value = queryCardRef.value.offsetHeight;
-      }
-    };
-
-    window.addEventListener('resize', updateHeight);
-
-    onUnmounted(() => {
-      window.removeEventListener('resize', updateHeight);
-    });
-  });
-
-  return { queryCardHeight, tableHeight };
-};
+  return {
+    queryCardHeight,
+    tableHeight,
+  };
+}

@@ -63,3 +63,13 @@ export async function getLiveLocationList() {
     queryBody: {},
   });
 }
+
+/**
+ * 获取当前直播列表
+ */
+export async function queryLivingList(params: LiveSchedulingApi.QueryParams) {
+  return requestClient.post<LiveSchedulingApi.QueryLivingResult>(
+    '/open/liveScheduling/livingList',
+    params,
+  );
+}

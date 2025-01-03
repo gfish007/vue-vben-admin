@@ -10,7 +10,8 @@
       "account": "Account",
       "location": "Location",
       "scheduling": "Scheduling",
-      "member": "Member"
+      "member": "Member",
+      "monitoring": "Monitoring"
     }
   }
 }

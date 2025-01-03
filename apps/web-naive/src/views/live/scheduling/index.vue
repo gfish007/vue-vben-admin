@@ -220,6 +220,7 @@ const handleEdit = async (row: LiveSchedulingApi.LiveSchedulingRecord) => {
     };
 
     editingRecord.value = formattedDetail;
+    console.log('editingRecord.value222', editingRecord.value);
     showModal.value = true;
   } catch (error) {
     console.error('获取详情失败:', error);
@@ -287,6 +288,7 @@ const handleSave = async () => {
   saveLoading.value = true;
   try {
     await formRef.value.validate();
+    console.log('editingRecord.value', editingRecord.value);
 
     // 验证所有成员的时间范围
     const invalidMembers = editingRecord.value.schedulingMembers.filter(member => {
@@ -310,7 +312,7 @@ const handleSave = async () => {
         ...member,
         gmtStart: formatDateTime(member.gmtStart, true),
         gmtEnd: formatDateTime(member.gmtEnd, true),
-        memberName: memberList.value.find(m => m.id === member.memberId)?.memberName || ''
+        // memberName: memberList.value.find(m => m.id === member.memberId)?.memberName || ''
       }))
     };
 
@@ -527,6 +529,7 @@ const handleConfirmMembers = () => {
       role: member.role || 'ZB',
     }));
 
+  console.log('newMembers', newMembers);
   editingRecord.value.schedulingMembers.push(...newMembers);
   showMemberModal.value = false;
 };

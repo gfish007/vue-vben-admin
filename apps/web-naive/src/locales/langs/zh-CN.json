@@ -42,7 +42,8 @@
       "account": "直播账号",
       "location": "直播地点",
       "scheduling": "直播排期",
-      "member": "直播成员"
+      "member": "直播成员",
+      "monitoring": "直播监控"
     }
   }
 }
