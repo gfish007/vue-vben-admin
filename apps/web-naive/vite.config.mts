@@ -1,4 +1,6 @@
 import { defineConfig } from '@vben/vite-config';
+import vue from '@vitejs/plugin-vue';
+import vueJsx from '@vitejs/plugin-vue-jsx';
 
 export default defineConfig(async () => {
   return {
@@ -16,5 +18,9 @@ export default defineConfig(async () => {
         },
       },
     },
+    plugins: [
+      vue(),
+      vueJsx(),
+    ],
   };
 });
