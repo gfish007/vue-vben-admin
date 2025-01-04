@@ -2,7 +2,7 @@
 import { h, defineComponent } from 'vue';
 import { NModal } from 'naive-ui';
 import { useLowCodeStore } from '#/store/modules/lowcode';
-import { ComponentRenderer } from './ComponentRenderer';
+import ComponentRenderer from './ComponentRenderer.vue';
 
 defineProps<{
   show: boolean;
@@ -43,32 +43,27 @@ const RenderNode = defineComponent({
 
 <template>
   <NModal
-    :show="show"
-    class="preview-modal"
+    v-model:show="show"
     preset="card"
-    style="width: 80vw; max-width: 1200px"
     title="预览"
+    size="huge"
     @update:show="emit('update:show', $event)"
   >
-    <div class="min-h-[300px] p-4">
-      <template v-if="store.componentTree.length">
-        <RenderNode
-          v-for="node in store.componentTree"
-          :key="node.componentInstanceId"
-          :node="node"
-        />
-      </template>
-      <div v-else class="flex h-full items-center justify-center text-gray-400">
-        暂无组件
-      </div>
+    <div class="preview-content">
+      <RenderNode
+        v-for="node in store.componentRelations"
+        :key="node.componentInstanceId"
+        :node="node"
+      />
     </div>
   </NModal>
 </template>
 
-<style>
-.preview-modal .component-wrapper,
-.preview-modal .component-actions,
-.preview-modal .component-selected {
-  display: none !important;
+<style lang="less" scoped>
+.preview-content {
+  min-height: 400px;
+  padding: 16px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
 }
 </style> 

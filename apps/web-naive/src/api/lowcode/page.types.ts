@@ -1,3 +1,5 @@
+import type { ComponentRelation } from '#/types/lowcode';
+
 export namespace PageApi {
   /** 查询参数 */
   export interface QueryParams {
@@ -30,24 +32,28 @@ export namespace PageApi {
   /** 页面记录 */
   export interface PageRecord {
     /** 主键ID */
-    id?: number;
+    id: number;
     /** 租户ID */
-    tenantId?: string;
+    tenantId: string;
     /** 页面编码 */
     pageCode: string;
     /** 页面名称 */
     pageName: string;
     /** 页面类型 */
-    pageType: 'FORM' | 'LIST' | 'DETAIL';
-    /** 布局配置 */
-    layoutConfig?: Record<string, any>;
-    /** 备注 */
-    remark?: string;
+    pageType: string;
     /** 状态 0-禁用 1-启用 */
-    status: 0 | 1;
+    status: number;
+    /** 版本 */
+    version: string;
+    /** 组件关系 */
+    componentRelations: ComponentRelation[];
+    /** 创建人 */
+    createdBy: string;
     /** 创建时间 */
-    gmtCreate?: string;
-    /** 修改时间 */
-    gmtModified?: string;
+    createdTime: string;
+    /** 更新人 */
+    updatedBy: string;
+    /** 更新时间 */
+    updatedTime: string;
   }
 } 
