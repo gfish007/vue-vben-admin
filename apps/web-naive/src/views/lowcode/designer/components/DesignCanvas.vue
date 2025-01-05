@@ -4,7 +4,6 @@ import type { ComponentInstance } from '../../../../types/lowcode';
 import { computed, ref } from 'vue';
 
 import {
-  CloseOutline,
   EyeOutline,
   ReloadOutline,
   ReturnUpBackOutline,
@@ -176,22 +175,6 @@ const handlePropUpdate = (
     },
   });
 };
-
-// 获取组件样式
-const getComponentStyle = (style: Record<string, any>, isWrapper = false) => {
-  const safeStyle: Record<string, string> = {};
-  for (const key in style) {
-    if (style[key] !== null && style[key] !== undefined) {
-      // 如果是wrapper，保持原样式
-      // 如果是内部组件，且有wrapper，则设置为100%以适应wrapper
-      safeStyle[key] =
-        !isWrapper && (key === 'width' || key === 'height')
-          ? '100%'
-          : String(style[key]);
-    }
-  }
-  return safeStyle;
-};
 </script>
 
 <template>
@@ -228,50 +211,47 @@ const getComponentStyle = (style: Record<string, any>, isWrapper = false) => {
       <div
         v-for="component in storeComponents"
         :key="component.componentInstanceId"
-        :class="{
-          active: store.currentComponentId === component.componentInstanceId,
-        }"
-        :style="getComponentStyle(component.style, true)"
-        class="component-wrapper"
-        @click.stop="handleComponentClick(component)"
+        class="component-outer"
       >
-        <div class="component-actions">
-          <NButton
-            circle
-            class="delete-btn"
-            size="tiny"
-            type="error"
-            @click.stop="deleteComponent(component.componentInstanceId)"
-          >
-            <template #icon>
-              <NIcon><CloseOutline /></NIcon>
-            </template>
-          </NButton>
-        </div>
-        <component
-          :is="getComponentRender(component.componentCode)"
-          v-bind="component.props"
-          :style="getComponentStyle(component.style)"
-          @update:value="handlePropUpdate(component, 'value', $event)"
+        <div
+          :class="{
+            active: store.currentComponentId === component.componentInstanceId,
+          }"
+          class="component-wrapper"
+          @click.stop="handleComponentClick(component)"
         >
-          <!-- 如果是容器组件，渲染子组件 -->
-          <template
-            v-if="component.componentCode === 'Container' && component.children"
-          >
-            <div
-              v-for="child in component.children"
-              :key="child.componentInstanceId"
-              class="container-item"
+          <div class="component-content">
+            <component
+              :is="getComponentRender(component.componentCode)"
+              v-bind="component.props"
+              :data-component-id="component.componentInstanceId"
+              :style="component.style"
+              @click.stop="handleComponentClick(component)"
+              @delete="deleteComponent(component.componentInstanceId)"
             >
-              <component
-                :is="getComponentRender(child.componentCode)"
-                v-bind="child.props"
-                :style="child.style"
-                @update:value="handlePropUpdate(child, 'value', $event)"
-              />
-            </div>
-          </template>
-        </component>
+              <!-- 如果是容器组件，渲染子组件 -->
+              <template
+                v-if="
+                  component.componentCode === 'Container' && component.children
+                "
+              >
+                <div
+                  v-for="child in component.children"
+                  :key="child.componentInstanceId"
+                  class="container-item"
+                >
+                  <component
+                    :is="getComponentRender(child.componentCode)"
+                    v-bind="child.props"
+                    :data-component-id="child.componentInstanceId"
+                    :style="child.style"
+                    @update:value="handlePropUpdate(child, 'value', $event)"
+                  />
+                </div>
+              </template>
+            </component>
+          </div>
+        </div>
       </div>
       <div v-if="storeComponents.length === 0" class="empty-tip">
         从左侧拖入组件开始设计
@@ -331,43 +311,70 @@ const getComponentStyle = (style: Record<string, any>, isWrapper = false) => {
   opacity: 1;
 }
 
+.component-outer {
+  position: relative;
+  display: contents;
+}
+
 .component-wrapper {
   position: relative;
-  display: block;
+  display: contents;
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: -1px;
-    right: -1px;
-    bottom: -1px;
-    border: 1px dashed transparent;
-    border-radius: 2px;
-    pointer-events: none;
-    transition: all 0.2s ease;
-    z-index: 1;
-  }
+.component-content {
+  position: relative;
+  display: inline;
 
-  .component-actions {
-    position: absolute;
-    top: -12px;
-    right: -12px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    z-index: 100;
-    pointer-events: auto;
-  }
+  > :deep(div),
+  > :deep(button) {
+    position: relative;
+    display: inline-block;
 
-  &:hover,
-  &.active {
     &::before {
-      border-color: #18a058;
-      background-color: rgba(24, 160, 88, 0.04);
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      right: -1px;
+      bottom: -1px;
+      border: 1px dashed transparent;
+      border-radius: 2px;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 1;
     }
 
-    .component-actions {
-      opacity: 1;
+    &::after {
+      content: '';
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      width: 24px;
+      height: 24px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 100;
+      pointer-events: auto;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23d03050"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>');
+      background-size: contain;
+      cursor: pointer;
+    }
+  }
+}
+
+.component-wrapper:hover,
+.component-wrapper.active {
+  .component-content {
+    > :deep(div),
+    > :deep(button) {
+      &::before {
+        border-color: #18a058;
+        background-color: rgba(24, 160, 88, 0.04);
+      }
+
+      &::after {
+        opacity: 1;
+      }
     }
   }
 }
@@ -394,5 +401,6 @@ const getComponentStyle = (style: Record<string, any>, isWrapper = false) => {
 .container-item {
   display: block;
   margin: 0;
+  position: relative;
 }
 </style>
