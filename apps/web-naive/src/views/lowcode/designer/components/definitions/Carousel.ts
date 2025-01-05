@@ -1,56 +1,72 @@
 import type { Component } from '#/types/lowcode';
-import { CarouselRender } from './CarouselRender';
-import CarouselProps from './CarouselProps.vue';
 
 export const Carousel: Component = {
-  componentName: '轮播图',
+  category: 'data',
   componentCode: 'Carousel',
-  componentType: 'DISPLAY',
-  category: '展示组件',
-  isContainer: false,
-  status: 1,
-
-  // 使用自定义属性编辑器
-  propEditor: CarouselProps,
-
-  // 默认属性值
+  componentName: '轮播',
   defaultProps: {
     autoplay: true,
-    interval: 3000,
     effect: 'slide',
-    dotType: 'dot',
-    dotPlacement: 'bottom',
-    showArrow: 'hover',
+    interval: 3000,
+    items: [
+      {
+        src: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
+      },
+      {
+        src: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg',
+      },
+      {
+        src: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg',
+      },
+    ],
+  },
+  icon: 'i-carbon:carousel',
+  propsSchema: {
+    autoplay: {
+      label: '自动播放',
+      type: 'boolean',
+    },
+    effect: {
+      label: '切换效果',
+      options: [
+        { label: '滑动', value: 'slide' },
+        { label: '淡入淡出', value: 'fade' },
+      ],
+      type: 'enum',
+    },
+    interval: {
+      label: '间隔时间(ms)',
+      type: 'number',
+    },
     style: {
-      width: '100%',
-      height: '240px',
+      label: '样式',
+      properties: {
+        height: {
+          defaultValue: '300px',
+          label: '高度',
+          type: 'string',
+        },
+        width: {
+          defaultValue: '100%',
+          label: '宽度',
+          type: 'string',
+        },
+      },
+      type: 'object',
     },
-    image1: {
-      url: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
-      title: '图片1',
-      description: '',
-      linkType: 'none',
-      link: '',
-      target: '_self',
-    },
-    image2: {
-      url: '',
-      title: '图片2',
-      description: '',
-      linkType: 'none',
-      link: '',
-      target: '_self',
-    },
-    image3: {
-      url: '',
-      title: '图片3',
-      description: '',
-      linkType: 'none',
-      link: '',
-      target: '_self',
+    items: {
+      label: '轮播项',
+      type: 'array',
+      items: {
+        label: '轮播项',
+        properties: {
+          src: {
+            label: '图片地址',
+            type: 'string',
+          },
+        },
+        type: 'object',
+      },
     },
   },
-
-  // 渲染器配置
-  render: CarouselRender,
-}; 
+};

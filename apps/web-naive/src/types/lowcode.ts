@@ -1,8 +1,8 @@
 /** 页面类型 */
-export type PageType = 'FORM' | 'LIST' | 'DETAIL';
+export type PageType = 'DETAIL' | 'FORM' | 'LIST';
 
 /** 组件类型 */
-export type ComponentType = 'CONTAINER' | 'FORM' | 'DISPLAY' | 'ACTION';
+export type ComponentType = 'ACTION' | 'CONTAINER' | 'DISPLAY' | 'FORM';
 
 /** 基础响应类型 */
 export interface BaseResponse<T = any> {
@@ -44,27 +44,54 @@ export interface PropPanelTab {
   fields: string[];
 }
 
-/** 组件定义 */
-export interface Component {
-  id?: number;
-  tenantId?: string;
+/** 组件类别 */
+export type ComponentCategory =
+  | 'business'
+  | 'data'
+  | 'feedback'
+  | 'form'
+  | 'layout';
+
+/** 属性类型 */
+export type PropType =
+  | 'array'
+  | 'boolean'
+  | 'enum'
+  | 'number'
+  | 'object'
+  | 'string';
+
+/** 属性配置 */
+export interface PropSchema {
+  defaultValue?: any;
+  label: string;
+  max?: number;
+  min?: number;
+  options?: Array<{ label: string; value: any }>;
+  type: 'checkbox' | 'input' | 'number' | 'radio' | 'select' | 'switch';
+}
+
+export interface ComponentDefinition {
+  category: 'display' | 'feedback' | 'form' | 'layout';
   componentCode: string;
   componentName: string;
-  componentType: ComponentType;
-  category: string;
-  icon?: string;
-  isContainer: boolean;
-  fullWidth?: boolean;
-  // 属性编辑配置，优先使用 propEditor，如果不存在则使用 propsSchema 和 propPanelTabs
-  propEditor?: {
-    component: any;  // Vue 组件
-    props?: Record<string, any>;  // 组件属性
-  };  // 自定义属性编辑器组件
-  propsSchema?: Record<string, PropSchema>;  // 默认属性配置
-  propPanelTabs?: PropPanelTab[];  // 默认面板配置
   defaultProps: Record<string, any>;
-  status: 0 | 1;
-  render?: any;
+  defaultStyle?: Partial<CSSStyleDeclaration>;
+  group: 'basic' | 'business';
+  icon: string;
+  propsSchema: Record<string, PropSchema>;
+}
+
+/** 组件实例 */
+export interface ComponentInstance {
+  componentCode: string;
+  componentInstanceId: string;
+  componentName: string;
+  props: Record<string, any>;
+  propsSchema: Record<string, PropSchema>;
+  style: Partial<CSSStyleDeclaration>;
+  children?: ComponentInstance[];
+  parentId?: string;
 }
 
 /** 组件关系 */
@@ -82,22 +109,31 @@ export interface ComponentRelation {
   children?: ComponentRelation[];
 }
 
-/** 属性类型 */
-export type PropType = 'string' | 'number' | 'boolean' | 'enum' | 'array' | 'object' | 'upload';
+/** 组件样式 */
+export interface ComponentStyle {
+  position?: 'absolute' | 'relative';
+  top?: string;
+  left?: string;
+  width?: string;
+  height?: string;
+  margin?: string;
+  padding?: string;
+  background?: string;
+  zIndex?: number;
+  [key: string]: any;
+}
 
-/** 属性配置 */
-export interface PropSchema {
-  type: PropType;
-  label: string;
-  options?: Array<{
-    label: string;
-    value: string | number;
-  }>;
-  showOn?: {
-    [key: string]: string | string[];
-  };
-  items?: PropSchema;  // 用于数组类型
-  properties?: Record<string, PropSchema>;  // 用于对象类型
-  accept?: string;  // 用于上传类型
-  maxSize?: number;  // 用于上传类型
-} 
+/** 事件API配置 */
+export interface EventApiConfig {
+  url: string;
+  method: string;
+  params: Record<string, any>;
+  dataHandler: string;
+}
+
+/** 事件配置 */
+export interface EventConfig {
+  type: 'api' | 'function';
+  api?: EventApiConfig;
+  function?: string;
+}

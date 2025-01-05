@@ -494,6 +494,12 @@ importers:
       '@tinymce/tinymce-vue':
         specifier: ^6.0.1
         version: 6.0.1(vue@3.5.7(typescript@5.6.2))
+      '@vicons/ionicons5':
+        specifier: ^0.13.0
+        version: 0.13.0
+      nanoid:
+        specifier: ^5.0.9
+        version: 5.0.9
       quill:
         specifier: ^2.0.2
         version: 2.0.2
@@ -806,6 +812,9 @@ importers:
       '@vben/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@vicons/ionicons5':
+        specifier: ^0.13.0
+        version: 0.13.0
       '@vueuse/core':
         specifier: 'catalog:'
         version: 11.1.0(vue@3.5.7(typescript@5.6.2))
@@ -830,6 +839,9 @@ importers:
       vue:
         specifier: 3.5.7
         version: 3.5.7(typescript@5.6.2)
+      vue-draggable-next:
+        specifier: ^2.2.1
+        version: 2.2.1(sortablejs@1.15.3)(vue@3.5.7(typescript@5.6.2))
       vue-router:
         specifier: 'catalog:'
         version: 4.4.5(vue@3.5.7(typescript@5.6.2))
@@ -4819,6 +4831,9 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
+  '@vicons/ionicons5@0.13.0':
+    resolution: {integrity: sha512-zvZKBPjEXKN7AXNo2Na2uy+nvuv6SP4KAMQxpKL2vfHMj0fSvuw7JZcOPCjQC3e7ayssKnaoFVAhbYcW6v41qQ==}
+
   '@videojs/http-streaming@3.16.2':
     resolution: {integrity: sha512-fvt4ko7FknxiT9FnjyNQt6q2px+awrkM+Orv7IB/4gldvj94u4fowGfmNHynnvNTPgPkdxHklGmFLGfclYw8HA==}
     engines: {node: '>=8', npm: '>=5'}
@@ -8188,6 +8203,11 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
 
+  nanoid@5.0.9:
+    resolution: {integrity: sha512-Aooyr6MXU6HpvvWXKoVoXwKMs/KyVakWwg7xQfv5/S/RIgJMy0Ifa45H9qqYy7pTCszrHzP21Uk4PZq2HpEM8Q==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+
   nanopop@2.4.2:
     resolution: {integrity: sha512-NzOgmMQ+elxxHeIha+OG/Pv3Oc3p4RU2aBhwWwAqDpXrdTbtRylbRLQztLy8dMMwfl6pclznBdfUhccEn9ZIzw==}
 
@@ -10619,6 +10639,12 @@ packages:
     peerDependenciesMeta:
       '@vue/composition-api':
         optional: true
+
+  vue-draggable-next@2.2.1:
+    resolution: {integrity: sha512-EAMS1IRHF0kZO0o5PMOinsQsXIqsrKT1hKmbICxG3UEtn7zLFkLxlAtajcCcUTisNvQ6TtCB5COjD9a1raNADw==}
+    peerDependencies:
+      sortablejs: ^1.14.0
+      vue: 3.5.7
 
   vue-eslint-parser@9.4.3:
     resolution: {integrity: sha512-2rYRLWlIpaiN8xbPiDyXZXRgLGOtWxERV7ND5fFAv5qo1D2N9Fu9MNajBNc6o13lZ+24DAWCkQCvj4klgmcITg==}
@@ -14254,6 +14280,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@vicons/ionicons5@0.13.0': {}
 
   '@videojs/http-streaming@3.16.2(video.js@8.21.0)':
     dependencies:
@@ -18150,6 +18178,8 @@ snapshots:
 
   nanoid@5.0.7: {}
 
+  nanoid@5.0.9: {}
+
   nanopop@2.4.2: {}
 
   natural-compare-lite@1.4.0: {}
@@ -20851,6 +20881,11 @@ snapshots:
 
   vue-demi@0.14.10(vue@3.5.7(typescript@5.6.2)):
     dependencies:
+      vue: 3.5.7(typescript@5.6.2)
+
+  vue-draggable-next@2.2.1(sortablejs@1.15.3)(vue@3.5.7(typescript@5.6.2)):
+    dependencies:
+      sortablejs: 1.15.3
       vue: 3.5.7(typescript@5.6.2)
 
   vue-eslint-parser@9.4.3(eslint@9.10.0(jiti@1.21.6)):

@@ -1,5 +1,40 @@
 {
   "page": {
+    "lowcode": {
+      "title": "低代码平台",
+      "designer": "页面设计器",
+      "preview": "页面预览",
+      "publish": "发布页面",
+      "propertyPanel": {
+        "props": "属性配置",
+        "style": "样式配置",
+        "events": "事件配置",
+        "addEvent": "添加事件",
+        "deleteEvent": "删除",
+        "selectComponent": "请选择一个组件进行配置",
+        "eventTypes": {
+          "click": "点击事件",
+          "dblclick": "双击事件",
+          "mouseenter": "鼠标移入",
+          "mouseleave": "鼠标移出",
+          "focus": "获得焦点",
+          "blur": "失去焦点"
+        },
+        "actionTypes": {
+          "api": "调用API",
+          "function": "执行函数"
+        },
+        "apiConfig": {
+          "url": "接口地址",
+          "method": "请求方法",
+          "params": "参数",
+          "dataHandler": "数据处理"
+        },
+        "functionConfig": {
+          "name": "函数名"
+        }
+      }
+    },
     "demos": {
       "title": "演示",
       "naive": "Naive UI",

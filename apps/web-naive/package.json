@@ -42,6 +42,7 @@
     "@vben/styles": "workspace:*",
     "@vben/types": "workspace:*",
     "@vben/utils": "workspace:*",
+    "@vicons/ionicons5": "^0.13.0",
     "@vueuse/core": "catalog:",
     "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-vue": "^5.1.12",
@@ -50,6 +51,7 @@
     "pinia": "catalog:",
     "video.js": "^8.21.0",
     "vue": "catalog:",
+    "vue-draggable-next": "^2.2.1",
     "vue-router": "catalog:",
     "xgplayer": "^3.0.20",
     "xgplayer-hls.js": "^3.0.20"

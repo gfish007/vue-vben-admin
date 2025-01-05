@@ -1,172 +1,280 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { NSelect } from 'naive-ui';
-import { useLowCodeStore } from '#/store/modules/lowcode';
-import ComponentRenderer from './ComponentRenderer.vue';
-import { baseComponents } from './registry';
-import type { Component } from '#/types/lowcode';
+import type { ComponentInstance } from '../../../../types/lowcode';
 
-interface Device {
-  id: string;
-  name: string;
-  width: number;
-  height: number;
-  scale: number;
-}
+import { computed, ref } from 'vue';
 
+import {
+  CloseOutline,
+  EyeOutline,
+  ReloadOutline,
+  ReturnUpBackOutline,
+  SaveOutline,
+} from '@vicons/ionicons5';
+import { NButton, NIcon, NSelect, NSpace, useMessage } from 'naive-ui';
+import { nanoid } from 'nanoid';
+
+import { useLowCodeStore } from '../../../../store/modules/lowcode';
+import * as componentRenders from './definitions';
+
+// 初始化 store
 const store = useLowCodeStore();
+const message = useMessage();
 const isDragOver = ref(false);
 const activeDevice = ref<string>('iphone-se');
 
 // 设备配置
 const devices = [
   {
+    height: 667,
     id: 'iphone-se',
     name: 'iPhone SE',
-    width: 375,
-    height: 667,
     scale: 0.75,
+    width: 375,
   },
   {
+    height: 844,
     id: 'iphone-12',
     name: 'iPhone 12',
-    width: 390,
-    height: 844,
     scale: 0.75,
+    width: 390,
   },
   {
+    height: 926,
     id: 'iphone-12-pro-max',
     name: 'iPhone 12 Pro Max',
-    width: 428,
-    height: 926,
     scale: 0.75,
+    width: 428,
   },
 ] as const;
 
 // 设备选项
-const deviceOptions = devices.map(device => ({
+const deviceOptions = devices.map((device) => ({
   label: device.name,
   value: device.id,
 }));
 
 // 获取当前设备
 const currentDevice = computed(() => {
-  return devices.find(d => d.id === activeDevice.value) || devices[0];
+  return devices.find((d) => d.id === activeDevice.value) || devices[0];
 });
 
 // 计算设备样式
 const deviceStyle = computed(() => {
   const device = currentDevice.value;
   return {
-    width: `${device.width * device.scale}px`,
     height: `${device.height * device.scale}px`,
+    width: `${device.width * device.scale}px`,
   };
 });
 
-// 处理拖拽进入
-const handleDragEnter = (event: DragEvent) => {
+// 处理拖拽
+const handleDragOver = (event: DragEvent) => {
   event.preventDefault();
+  event.dataTransfer!.dropEffect = 'copy';
   isDragOver.value = true;
 };
 
-// 处理拖拽离开
 const handleDragLeave = (event: DragEvent) => {
   event.preventDefault();
-  isDragOver.value = false;
-};
-
-// 处理拖拽悬停
-const handleDragOver = (event: DragEvent) => {
-  event.preventDefault();
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = 'copy';
+  const target = event.currentTarget as HTMLElement;
+  const relatedTarget = event.relatedTarget as HTMLElement;
+  // 只有当真正离开画布区域时才重置状态
+  if (!target.contains(relatedTarget)) {
+    isDragOver.value = false;
   }
 };
 
-// 处理放置
 const handleDrop = (event: DragEvent) => {
   event.preventDefault();
   isDragOver.value = false;
 
-  if (!event.dataTransfer) return;
+  const componentData = event.dataTransfer?.getData('component');
+  if (!componentData) {
+    message.error('无效的组件数据');
+    return;
+  }
 
   try {
-    const componentData = JSON.parse(event.dataTransfer.getData('componentInstance'));
-    console.log('Dropped component data:', componentData);
+    const component = JSON.parse(componentData);
 
-    // 获取组件定义
-    const componentDef = baseComponents.find((comp: Component) => comp.componentCode === componentData.componentCode);
-    if (!componentDef) {
-      console.error('Component definition not found:', componentData.componentCode);
+    if (!component.componentCode || !component.componentName) {
+      message.error('组件数据不完整');
       return;
     }
 
-    console.log('Found component definition:', componentDef);
+    // 根据组件类型设置默认属性
+    const defaultProps = { ...component.defaultProps };
 
-    // 创建新的组件实例
-    const newComponent = {
-      id: 0,
-      tenantId: 'default',
-      pageCode: store.currentPage?.pageCode || '',
-      version: store.currentPage?.version || '1.0.0',
-      componentInstanceId: componentData.componentInstanceId,
-      componentCode: componentData.componentCode,
-      componentName: componentData.componentName,
-      props: componentDef.defaultProps || {},
-      sortOrder: store.componentRelations.length,
-      children: [],
+    // 设置默认样式
+    const defaultStyle: Record<string, string> = {
+      boxSizing: 'border-box',
+      margin: '0',
+      padding: '4px 8px',
     };
 
-    console.log('Created new component:', newComponent);
-    console.log('Current component relations:', store.componentRelations);
+    // 根据组件类型设置特定样式
+    if (component.componentCode === 'Container') {
+      defaultStyle.minHeight = '240px';
+    }
 
-    // 添加到组件关系中
-    store.addComponent(newComponent);
-    
-    // 选中新添加的组件
-    store.setSelectedComponent(newComponent.componentInstanceId);
+    // 合并自定义样式，确保外部传入的样式优先级更高
+    const mergedStyle = component.defaultStyle
+      ? { ...defaultStyle, ...component.defaultStyle }
+      : defaultStyle;
 
-    console.log('Updated component relations:', store.componentRelations);
+    const componentInstance: ComponentInstance = {
+      componentCode: component.componentCode,
+      componentInstanceId: nanoid(),
+      componentName: component.componentName,
+      props: defaultProps,
+      propsSchema: component.propsSchema,
+      style: mergedStyle,
+    };
+
+    // 使用 store 添加组件
+    store.addComponent(componentInstance);
+    message.success('添加组件成功');
   } catch (error) {
-    console.error('Failed to parse dropped component:', error);
+    message.error(
+      `添加组件失败: ${error instanceof Error ? error.message : '未知错误'}`,
+    );
   }
+};
+
+// 获取组件的渲染函数
+const getComponentRender = (componentCode: string) => {
+  // 根据组件代码获取对应的渲染函数
+  const renderKey = `${componentCode}Render` as keyof typeof componentRenders;
+  return componentRenders[renderKey] || null;
+};
+
+// 组件操作
+const handleComponentClick = (component: ComponentInstance) => {
+  // 设置当前选中的组件
+  store.setCurrentComponentId(component.componentInstanceId);
+};
+
+// 使用 store 中的组件列表
+const storeComponents = computed(() => store.components);
+
+// 删除组件时也使用 store
+const deleteComponent = (componentInstanceId: string) => {
+  store.removeComponent(componentInstanceId);
+  message.success('删除组件成功');
+};
+
+// 处理组件属性更新
+const handlePropUpdate = (
+  component: ComponentInstance,
+  field: string,
+  value: unknown,
+) => {
+  store.updateComponent(component.componentInstanceId, {
+    props: {
+      ...component.props,
+      [field]: value,
+    },
+  });
+};
+
+// 获取组件样式
+const getComponentStyle = (style: Record<string, any>, isWrapper = false) => {
+  const safeStyle: Record<string, string> = {};
+  for (const key in style) {
+    if (style[key] !== null && style[key] !== undefined) {
+      // 如果是wrapper，保持原样式
+      // 如果是内部组件，且有wrapper，则设置为100%以适应wrapper
+      safeStyle[key] =
+        !isWrapper && (key === 'width' || key === 'height')
+          ? '100%'
+          : String(style[key]);
+    }
+  }
+  return safeStyle;
 };
 </script>
 
 <template>
-  <div class="design-canvas">
-    <!-- 设备选择器 -->
-    <div class="device-selector">
+  <div
+    :class="{ 'drag-over': isDragOver }"
+    class="design-canvas"
+    @dragleave="handleDragLeave"
+    @dragover="handleDragOver"
+    @drop="handleDrop"
+  >
+    <div class="canvas-header">
       <NSelect
-        v-model:value="activeDevice"
         :options="deviceOptions"
+        :value="activeDevice"
         size="small"
+        @update:value="(val) => (activeDevice = val)"
       />
+      <NSpace>
+        <NButton circle quaternary size="small" title="重置" type="default">
+          <NIcon><ReloadOutline /></NIcon>
+        </NButton>
+        <NButton circle quaternary size="small" title="撤销" type="default">
+          <NIcon><ReturnUpBackOutline /></NIcon>
+        </NButton>
+        <NButton circle quaternary size="small" title="保存" type="primary">
+          <NIcon><SaveOutline /></NIcon>
+        </NButton>
+        <NButton circle quaternary size="small" title="预览" type="info">
+          <NIcon><EyeOutline /></NIcon>
+        </NButton>
+      </NSpace>
     </div>
-
-    <!-- 设计画布 -->
-    <div
-      class="canvas-container"
-      :class="{ 'drag-over': isDragOver }"
-      @dragover.prevent
-      @dragenter="isDragOver = true"
-      @dragleave="isDragOver = false"
-      @drop="handleDrop"
-    >
+    <div :style="deviceStyle" class="canvas-body">
       <div
-        class="device-frame"
-        :style="{
-          width: `${currentDevice.width}px`,
-          height: `${currentDevice.height}px`,
-          transform: `scale(${currentDevice.scale})`,
+        v-for="component in storeComponents"
+        :key="component.componentInstanceId"
+        :class="{
+          active: store.currentComponentId === component.componentInstanceId,
         }"
+        :style="getComponentStyle(component.style, true)"
+        class="component-wrapper"
+        @click.stop="handleComponentClick(component)"
       >
-        <!-- 渲染组件 -->
-        <ComponentRenderer
-          v-for="component in store.componentRelations"
-          :key="component.componentInstanceId"
-          :node="component"
-        />
+        <div class="component-actions">
+          <NButton
+            circle
+            class="delete-btn"
+            size="tiny"
+            type="error"
+            @click.stop="deleteComponent(component.componentInstanceId)"
+          >
+            <template #icon>
+              <NIcon><CloseOutline /></NIcon>
+            </template>
+          </NButton>
+        </div>
+        <component
+          :is="getComponentRender(component.componentCode)"
+          v-bind="component.props"
+          :style="getComponentStyle(component.style)"
+          @update:value="handlePropUpdate(component, 'value', $event)"
+        >
+          <!-- 如果是容器组件，渲染子组件 -->
+          <template
+            v-if="component.componentCode === 'Container' && component.children"
+          >
+            <div
+              v-for="child in component.children"
+              :key="child.componentInstanceId"
+              class="container-item"
+            >
+              <component
+                :is="getComponentRender(child.componentCode)"
+                v-bind="child.props"
+                :style="child.style"
+                @update:value="handlePropUpdate(child, 'value', $event)"
+              />
+            </div>
+          </template>
+        </component>
+      </div>
+      <div v-if="storeComponents.length === 0" class="empty-tip">
+        从左侧拖入组件开始设计
       </div>
     </div>
   </div>
@@ -174,74 +282,117 @@ const handleDrop = (event: DragEvent) => {
 
 <style lang="less" scoped>
 .design-canvas {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  gap: 16px;
-  padding: 16px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-.device-selector {
+.canvas-header {
   display: flex;
-  justify-content: center;
-  padding: 0 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  z-index: 1;
 
   :deep(.n-select) {
-    width: 200px;
+    width: 160px;
+  }
+
+  :deep(.n-button) {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
   }
 }
 
-.canvas-container {
+.canvas-body {
   flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: radial-gradient(circle, #f5f5f5 0%, #e0e0e0 100%);
+  margin: 24px auto;
+  padding: 24px;
+  background-color: #fff;
   border-radius: 8px;
-  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  overflow: auto;
+  position: relative;
   transition: all 0.3s ease;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
-
-  &.drag-over {
-    background: radial-gradient(circle, #e8f5e9 0%, #c8e6c9 100%);
-    box-shadow: inset 0 2px 12px rgba(24, 160, 88, 0.2);
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 100%;
+  height: 100%;
 }
 
-.device-frame {
-  background-color: #fff;
-  border-radius: 32px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-  transform-origin: center center;
-  transition: all 0.3s ease;
-  overflow: auto;
-  padding: 16px;
+:deep(.drag-over) .canvas-body::after {
+  opacity: 1;
+}
+
+.component-wrapper {
   position: relative;
-
-  &::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 2px;
-  }
+  display: block;
 
   &::before {
     content: '';
     position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 4px;
-    background-color: #e0e0e0;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    border: 1px dashed transparent;
     border-radius: 2px;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 1;
+  }
+
+  .component-actions {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 100;
+    pointer-events: auto;
+  }
+
+  &:hover,
+  &.active {
+    &::before {
+      border-color: #18a058;
+      background-color: rgba(24, 160, 88, 0.04);
+    }
+
+    .component-actions {
+      opacity: 1;
+    }
   }
 }
-</style> 
+
+.delete-btn {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.component-content {
+  position: relative;
+  display: inline-flex;
+  min-width: min-content;
+}
+
+.empty-tip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #999;
+  font-size: 14px;
+}
+
+.container-item {
+  display: block;
+  margin: 0;
+}
+</style>

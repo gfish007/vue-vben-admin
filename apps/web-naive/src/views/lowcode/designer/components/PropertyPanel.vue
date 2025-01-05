@@ -1,176 +1,335 @@
-<template>
-  <div class="property-panel">
-    <template v-if="currentComponent">
-      <!-- 如果存在自定义属性编辑器，则使用自定义编辑器 -->
-      <component
-        v-if="currentComponent.propEditor"
-        :is="currentComponent.propEditor"
-        v-model="componentProps"
-      />
-      <!-- 否则使用默认的属性编辑器 -->
-      <template v-else>
-        <n-tabs v-model:value="activeTab" type="line" animated>
-          <n-tab-pane
-            v-for="tab in currentComponent.propPanelTabs"
-            :key="tab.name"
-            :name="tab.name"
-            :tab="tab.label"
-          >
-            <n-form
-              ref="formRef"
-              :model="componentProps"
-              label-placement="left"
-              label-width="auto"
-              require-mark-placement="right-hanging"
-              :style="{ padding: '16px' }"
-            >
-              <template v-for="field in tab.fields" :key="field">
-                <n-form-item
-                  v-if="shouldShowField(field)"
-                  :label="getFieldSchema(field).label"
-                >
-                  <PropertyField
-                    :schema="getFieldSchema(field)"
-                    :field="field"
-                    :value="componentProps[field]"
-                    @update:value="(val: any) => updateFieldValue(field, val)"
-                  />
-                </n-form-item>
-              </template>
-            </n-form>
-          </n-tab-pane>
-        </n-tabs>
-      </template>
-    </template>
-    <div v-else class="property-panel-empty">
-      <n-empty description="请选择一个组件" />
-    </div>
-  </div>
-</template>
+<script setup lang="ts">
+import type { ComponentInstance } from '../../../../types/lowcode';
 
-<script lang="ts" setup>
-import { ref, computed, watch } from 'vue';
-import { useLowCodeStore } from '#/store/modules/lowcode';
-import { storeToRefs } from 'pinia';
-import PropertyField from './definitions/PropertyField.vue';
-import type { PropSchema, Component, ComponentRelation } from '#/types/lowcode';
+import { computed } from 'vue';
+
 import {
-  NTabs,
-  NTabPane,
+  NCard,
+  NCheckboxGroup,
+  NColorPicker,
+  NEmpty,
   NForm,
   NFormItem,
-  NEmpty,
-  type FormInst,
+  NInput,
+  NInputNumber,
+  NRadioGroup,
+  NSelect,
+  NSpace,
+  NSwitch,
+  NTabPane,
+  NTabs,
 } from 'naive-ui';
 
-// 使用 lodash-es 的 get 函数的简单实现
-function get(obj: any, path: string, defaultValue?: any): any {
-  if (!path) return obj;
-  const travel = (regexp: RegExp) =>
-    String.prototype.split
-      .call(path, regexp)
-      .filter(Boolean)
-      .reduce((res, key) => (res !== null && res !== undefined ? res[key] : res), obj);
-  const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
-  return result === undefined || result === obj ? defaultValue : result;
-}
-
-// 使用 lodash-es 的 set 函数的简单实现
-function set(obj: any, path: string, value: any): any {
-  if (!path) return obj;
-  const segments = path.split('.');
-  let current = obj;
-  for (let i = 0; i < segments.length - 1; i++) {
-    const segment = segments[i];
-    if (segment && !(segment in current)) {
-      current[segment] = {};
-    }
-    if (segment) {
-      current = current[segment];
-    }
-  }
-  const lastSegment = segments[segments.length - 1];
-  if (lastSegment) {
-    current[lastSegment] = value;
-  }
-  return obj;
-}
+import { useLowCodeStore } from '../../../../store/modules/lowcode';
 
 const store = useLowCodeStore();
-const { currentComponent, currentNode } = storeToRefs(store);
 
-// 表单实例
-const formRef = ref<FormInst | null>(null);
-
-// 当前激活的标签页
-const activeTab = ref('props');
-
-// 组件属性（支持双向绑定）
-const componentProps = computed({
-  get: () => currentNode.value?.props || {},
-  set: (value) => {
-    if (currentNode.value) {
-      currentNode.value.props = value;
-    }
-  },
+// 当前选中的组件
+const currentComponent = computed<ComponentInstance | null>(() => {
+  if (!store.currentComponentId) return null;
+  return (
+    store.components.find(
+      (comp) => comp.componentInstanceId === store.currentComponentId,
+    ) || null
+  );
 });
 
-// 获取字段的schema
-const getFieldSchema = (field: string): PropSchema => {
-  // 处理嵌套属性，如 'style.width'
-  const schema = get(currentComponent.value?.propsSchema || {}, field);
-  if (!schema) {
-    console.warn(`Schema not found for field: ${field}`);
-    return {
-      type: 'string',
-      label: field,
-    };
-  }
-  return schema;
-};
+// 自定义样式
+const customStyle = computed(() => {
+  if (!currentComponent.value) return '';
+  const style = currentComponent.value.style;
+  return Object.entries(style)
+    .map(([key, value]) => `${key}: ${value};`)
+    .join('\n');
+});
 
-// 更新字段值
-const updateFieldValue = (field: string, value: any) => {
-  const newProps = { ...componentProps.value };
-  set(newProps, field, value);
-  componentProps.value = newProps;
-};
-
-// 判断字段是否应该显示（处理条件显示逻辑）
-const shouldShowField = (field: string): boolean => {
-  const schema = getFieldSchema(field);
-  if (!schema.showOn) return true;
-
-  // 检查每个显示条件
-  return Object.entries(schema.showOn).every(([key, values]) => {
-    const currentValue = get(componentProps.value, key);
-    return Array.isArray(values)
-      ? values.includes(currentValue)
-      : values === currentValue;
+// 更新组件属性
+const handlePropUpdate = (field: string, value: unknown) => {
+  if (!currentComponent.value) return;
+  store.updateComponent(currentComponent.value.componentInstanceId, {
+    props: {
+      ...currentComponent.value.props,
+      [field]: value,
+    },
   });
 };
 
-// 监听组件变化，重置激活的标签页
-watch(currentComponent, () => {
-  activeTab.value = 'props';
-});
+// 更新组件样式
+const handleStyleUpdate = (field: string, value: unknown) => {
+  if (!currentComponent.value) return;
+  store.updateComponent(currentComponent.value.componentInstanceId, {
+    style: {
+      ...currentComponent.value.style,
+      [field]: value,
+    },
+  });
+};
+
+// 处理自定义样式更新
+const handleCustomStyleUpdate = (value: string) => {
+  if (!currentComponent.value) return;
+
+  try {
+    const styleLines = value.split('\n');
+    const styleObj: Record<string, string> = {};
+
+    styleLines.forEach((line) => {
+      const [key, value] = line.split(':').map((s) => s.trim());
+      if (key && value) {
+        // 移除末尾的分号
+        styleObj[key] = value.replace(/;$/, '');
+      }
+    });
+
+    store.updateComponent(currentComponent.value.componentInstanceId, {
+      style: styleObj,
+    });
+  } catch {
+    // 忽略解析错误
+  }
+};
 </script>
+
+<template>
+  <div class="property-panel">
+    <template v-if="currentComponent">
+      <NTabs type="segment">
+        <NTabPane name="props" tab="属性">
+          <NForm label-placement="left" label-width="100">
+            <NFormItem
+              v-for="(schema, field) in currentComponent.propsSchema"
+              :key="field"
+              :label="schema.label"
+            >
+              <!-- 输入框 -->
+              <NInput
+                v-if="schema.type === 'input'"
+                :value="currentComponent.props[field]"
+                clearable
+                placeholder="请输入"
+                @update:value="(val) => handlePropUpdate(field, val)"
+              />
+
+              <!-- 数字输入框 -->
+              <NInputNumber
+                v-else-if="schema.type === 'number'"
+                :max="schema.max"
+                :min="schema.min"
+                :value="currentComponent.props[field]"
+                clearable
+                placeholder="请输入"
+                @update:value="(val) => handlePropUpdate(field, val)"
+              />
+
+              <!-- 选择器 -->
+              <NSelect
+                v-else-if="schema.type === 'select'"
+                :options="schema.options"
+                :value="currentComponent.props[field]"
+                clearable
+                placeholder="请选择"
+                @update:value="(val) => handlePropUpdate(field, val)"
+              />
+
+              <!-- 开关 -->
+              <NSwitch
+                v-else-if="schema.type === 'switch'"
+                :value="currentComponent.props[field]"
+                @update:value="(val) => handlePropUpdate(field, val)"
+              />
+
+              <!-- 单选组 -->
+              <NRadioGroup
+                v-else-if="schema.type === 'radio'"
+                :name="field"
+                :options="schema.options"
+                :value="currentComponent.props[field]"
+                @update:value="(val) => handlePropUpdate(field, val)"
+              />
+
+              <!-- 多选组 -->
+              <NCheckboxGroup
+                v-else-if="schema.type === 'checkbox'"
+                :options="schema.options"
+                :value="currentComponent.props[field]"
+                @update:value="(val) => handlePropUpdate(field, val)"
+              />
+            </NFormItem>
+          </NForm>
+        </NTabPane>
+
+        <NTabPane name="style" tab="样式">
+          <NForm label-placement="left" label-width="100">
+            <NSpace vertical>
+              <!-- 尺寸设置 -->
+              <NCard size="small" title="尺寸">
+                <NSpace size="small" vertical>
+                  <NFormItem label="宽度">
+                    <NInput
+                      :value="currentComponent.style.width"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="(val) => handleStyleUpdate('width', val)"
+                    />
+                  </NFormItem>
+                  <NFormItem label="高度">
+                    <NInput
+                      :value="currentComponent.style.height"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="(val) => handleStyleUpdate('height', val)"
+                    />
+                  </NFormItem>
+                  <NFormItem label="最小宽度">
+                    <NInput
+                      :value="currentComponent.style.minWidth"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="
+                        (val) => handleStyleUpdate('minWidth', val)
+                      "
+                    />
+                  </NFormItem>
+                  <NFormItem label="最小高度">
+                    <NInput
+                      :value="currentComponent.style.minHeight"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="
+                        (val) => handleStyleUpdate('minHeight', val)
+                      "
+                    />
+                  </NFormItem>
+                </NSpace>
+              </NCard>
+
+              <!-- 边距设置 -->
+              <NCard size="small" title="边距">
+                <NSpace size="small" vertical>
+                  <NFormItem label="内边距">
+                    <NInput
+                      :value="currentComponent.style.padding"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="(val) => handleStyleUpdate('padding', val)"
+                    />
+                  </NFormItem>
+                  <NFormItem label="外边距">
+                    <NInput
+                      :value="currentComponent.style.margin"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="(val) => handleStyleUpdate('margin', val)"
+                    />
+                  </NFormItem>
+                </NSpace>
+              </NCard>
+
+              <!-- 外观设置 -->
+              <NCard size="small" title="外观">
+                <NSpace size="small" vertical>
+                  <NFormItem label="背景色">
+                    <NColorPicker
+                      :value="currentComponent.style.backgroundColor"
+                      @update:value="
+                        (val) => handleStyleUpdate('backgroundColor', val)
+                      "
+                    />
+                  </NFormItem>
+                  <NFormItem label="文字颜色">
+                    <NColorPicker
+                      :value="currentComponent.style.color"
+                      @update:value="(val) => handleStyleUpdate('color', val)"
+                    />
+                  </NFormItem>
+                  <NFormItem label="字体大小">
+                    <NInput
+                      :value="currentComponent.style.fontSize"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="
+                        (val) => handleStyleUpdate('fontSize', val)
+                      "
+                    />
+                  </NFormItem>
+                </NSpace>
+              </NCard>
+
+              <!-- 布局设置 -->
+              <NCard size="small" title="布局">
+                <NSpace size="small" vertical>
+                  <NFormItem label="显示方式">
+                    <NSelect
+                      :options="[
+                        { label: '块级', value: 'block' },
+                        { label: '行内块', value: 'inline-block' },
+                        { label: '弹性布局', value: 'flex' },
+                        { label: '网格', value: 'grid' },
+                      ]"
+                      :value="currentComponent.style.display"
+                      @update:value="(val) => handleStyleUpdate('display', val)"
+                    />
+                  </NFormItem>
+                  <NFormItem label="定位">
+                    <NSelect
+                      :options="[
+                        { label: '静态', value: 'static' },
+                        { label: '相对', value: 'relative' },
+                        { label: '绝对', value: 'absolute' },
+                        { label: '固定', value: 'fixed' },
+                      ]"
+                      :value="currentComponent.style.position"
+                      @update:value="
+                        (val) => handleStyleUpdate('position', val)
+                      "
+                    />
+                  </NFormItem>
+                </NSpace>
+              </NCard>
+
+              <NCard size="small" title="自定义样式">
+                <NSpace size="small" vertical>
+                  <NInput
+                    :autosize="{ minRows: 3, maxRows: 10 }"
+                    :value="customStyle"
+                    placeholder="请输入 CSS 样式，每行一个属性，例如：
+color: #333;
+font-size: 14px;"
+                    type="textarea"
+                    @update:value="handleCustomStyleUpdate"
+                  />
+                </NSpace>
+              </NCard>
+            </NSpace>
+          </NForm>
+        </NTabPane>
+      </NTabs>
+    </template>
+    <template v-else>
+      <NEmpty description="请选择一个组件" />
+    </template>
+  </div>
+</template>
 
 <style lang="less" scoped>
 .property-panel {
   height: 100%;
-  overflow-y: auto;
-  background-color: #fff;
+  padding: 16px;
+  overflow: auto;
 
-  &-empty {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  :deep(.n-form) {
+    .n-form-item {
+      margin-bottom: 12px;
+    }
   }
 
-  :deep(.n-form-item) {
-    margin-bottom: 16px;
+  :deep(.n-card) {
+    .n-card-header {
+      padding: 8px 12px;
+    }
+    .n-card__content {
+      padding: 8px 12px;
+    }
   }
 }
 </style>

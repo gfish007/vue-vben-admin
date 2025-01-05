@@ -1,26 +1,23 @@
 import type { Component } from '#/types/lowcode';
 
-export const Container: Component = {
+export const Card: Component = {
   category: 'layout',
-  componentCode: 'Container',
-  componentName: '容器',
+  componentCode: 'Card',
+  componentName: '卡片',
   defaultProps: {
-    direction: 'vertical',
-    gap: '16px',
+    bordered: true,
+    hoverable: false,
+    title: '卡片标题',
   },
-  icon: 'i-carbon:container',
+  icon: 'i-carbon:card',
   propsSchema: {
-    direction: {
-      label: '布局方向',
-      options: [
-        { label: '垂直', value: 'vertical' },
-        { label: '水平', value: 'horizontal' },
-      ],
-      type: 'string',
+    bordered: {
+      label: '显示边框',
+      type: 'boolean',
     },
-    gap: {
-      label: '间距',
-      type: 'string',
+    hoverable: {
+      label: '悬浮效果',
+      type: 'boolean',
     },
     style: {
       label: '样式',
@@ -30,9 +27,14 @@ export const Container: Component = {
           label: '背景色',
           type: 'string',
         },
-        height: {
-          defaultValue: 'auto',
-          label: '高度',
+        borderRadius: {
+          defaultValue: '4px',
+          label: '圆角',
+          type: 'string',
+        },
+        margin: {
+          defaultValue: '0',
+          label: '外边距',
           type: 'string',
         },
         padding: {
@@ -47,6 +49,10 @@ export const Container: Component = {
         },
       },
       type: 'object',
+    },
+    title: {
+      label: '标题',
+      type: 'string',
     },
   },
 };

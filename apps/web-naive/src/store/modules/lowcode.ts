@@ -1,100 +1,83 @@
-import { defineStore } from 'pinia';
-import type { Component, ComponentRelation, PageConfig } from '#/types/lowcode';
+import type { ComponentInstance } from '#/types/lowcode';
 
-export interface LowCodeState {
-  currentPage: PageConfig | null;
-  componentRelations: ComponentRelation[];
-  selectedComponentId: string | null;
-  currentComponent: Component | null;
-  currentNode: ComponentRelation | null;
+import { defineStore } from 'pinia';
+
+interface LowCodeState {
+  currentComponentId: null | string;
+  components: ComponentInstance[];
+  maxZIndex: number;
 }
 
 export const useLowCodeStore = defineStore('lowcode', {
-  state: (): LowCodeState => ({
-    currentPage: null,
-    componentRelations: [],
-    selectedComponentId: null,
-    currentComponent: null,
-    currentNode: null,
-  }),
-
   actions: {
-    setCurrentPage(page: PageConfig) {
-      this.currentPage = page;
+    addComponent(component: ComponentInstance) {
+      this.components.push(component);
+      this.currentComponentId = component.componentInstanceId;
+      this.maxZIndex = Math.max(this.maxZIndex, component.style?.zIndex || 0);
     },
 
-    setComponentRelations(relations: ComponentRelation[]) {
-      this.componentRelations = relations;
-    },
-
-    setSelectedComponentId(id: string | null) {
-      this.selectedComponentId = id;
-      if (id) {
-        // 设置当前组件和节点
-        const node = this.componentRelations.find(
-          comp => comp.componentInstanceId === id
-        );
-        if (node) {
-          this.currentNode = node;
-          // TODO: 从组件库中获取组件定义
-          this.currentComponent = null;
-        } else {
-          this.currentNode = null;
-          this.currentComponent = null;
-        }
-      } else {
-        this.currentComponent = null;
-        this.currentNode = null;
-      }
-    },
-
-    addComponent(component: ComponentRelation) {
-      this.componentRelations.push(component);
-    },
-
-    updateComponent(component: ComponentRelation) {
-      const index = this.componentRelations.findIndex(
-        comp => comp.componentInstanceId === component.componentInstanceId
+    bringComponentToFront(id: string) {
+      const component = this.components.find(
+        (c) => c.componentInstanceId === id,
       );
-      if (index > -1) {
-        this.componentRelations[index] = component;
+      if (component && component.style) {
+        this.maxZIndex += 1;
+        component.style.zIndex = this.maxZIndex;
       }
+    },
+
+    getMaxZIndex() {
+      return this.maxZIndex;
     },
 
     removeComponent(id: string) {
-      const index = this.componentRelations.findIndex(
-        comp => comp.componentInstanceId === id
+      const index = this.components.findIndex(
+        (c) => c.componentInstanceId === id,
       );
       if (index > -1) {
-        this.componentRelations.splice(index, 1);
+        this.components.splice(index, 1);
+        if (this.currentComponentId === id) {
+          this.currentComponentId = null;
+        }
       }
     },
 
-    swapComponents(sourceId: string, targetId: string) {
-      const sourceIndex = this.componentRelations.findIndex(
-        comp => comp.componentInstanceId === sourceId
+    setCurrentComponentId(id: null | string) {
+      this.currentComponentId = id;
+    },
+
+    updateComponent(id: string, updates: Partial<ComponentInstance>) {
+      const index = this.components.findIndex(
+        (c) => c.componentInstanceId === id,
       );
-      const targetIndex = this.componentRelations.findIndex(
-        comp => comp.componentInstanceId === targetId
-      );
-      if (sourceIndex > -1 && targetIndex > -1) {
-        const sourceComponent = this.componentRelations[sourceIndex] as ComponentRelation;
-        const targetComponent = this.componentRelations[targetIndex] as ComponentRelation;
-        
-        // Create new component objects with swapped sort orders
-        const newSourceComponent: ComponentRelation = {
-          ...targetComponent,
-          sortOrder: sourceComponent.sortOrder
+      if (index > -1) {
+        const updatedComponent = {
+          ...this.components[index],
+          ...updates,
+          props: {
+            ...this.components[index].props,
+            ...updates.props,
+          },
+          style: {
+            ...this.components[index].style,
+            ...updates.style,
+          },
         };
-        
-        const newTargetComponent: ComponentRelation = {
-          ...sourceComponent,
-          sortOrder: targetComponent.sortOrder
-        };
-        
-        this.componentRelations[sourceIndex] = newSourceComponent;
-        this.componentRelations[targetIndex] = newTargetComponent;
+        this.components.splice(index, 1, updatedComponent);
       }
     },
   },
-}); 
+
+  getters: {
+    currentComponent: (state) =>
+      state.components.find(
+        (c) => c.componentInstanceId === state.currentComponentId,
+      ),
+  },
+
+  state: (): LowCodeState => ({
+    components: [],
+    currentComponentId: null,
+    maxZIndex: 0,
+  }),
+});
