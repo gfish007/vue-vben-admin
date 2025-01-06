@@ -1,15 +1,24 @@
-<script setup lang="ts">
+<script setup lang="ts" name="DesignCanvas">
 import type { ComponentInstance } from '../../../../types/lowcode';
 
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import {
   EyeOutline,
   ReloadOutline,
   ReturnUpBackOutline,
   SaveOutline,
+  ServerOutline,
 } from '@vicons/ionicons5';
-import { NButton, NIcon, NSelect, NSpace, useMessage } from 'naive-ui';
+import {
+  NButton,
+  NIcon,
+  NSelect,
+  NSpace,
+  useDialog,
+  useMessage,
+} from 'naive-ui';
 import { nanoid } from 'nanoid';
 
 import { useLowCodeStore } from '../../../../store/modules/lowcode';
@@ -175,6 +184,25 @@ const handlePropUpdate = (
     },
   });
 };
+
+// Add router instance
+const router = useRouter();
+
+// Add dialog instance
+const dialog = useDialog();
+
+// Update the data source button click handler
+const handleDataSourceClick = () => {
+  dialog.warning({
+    content: '是否要跳转到数据源管理页面？当前页面的未保存内容可能会丢失。',
+    negativeText: '取消',
+    onPositiveClick: () => {
+      router.push('/lowcode/datasource');
+    },
+    positiveText: '确定',
+    title: '提示',
+  });
+};
 </script>
 
 <template>
@@ -204,6 +232,16 @@ const handlePropUpdate = (
         </NButton>
         <NButton circle quaternary size="small" title="预览" type="info">
           <NIcon><EyeOutline /></NIcon>
+        </NButton>
+        <NButton
+          circle
+          quaternary
+          size="small"
+          title="数据源"
+          type="warning"
+          @click="handleDataSourceClick"
+        >
+          <NIcon><ServerOutline /></NIcon>
         </NButton>
       </NSpace>
     </div>

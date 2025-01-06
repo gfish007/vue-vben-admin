@@ -35,6 +35,7 @@ export interface PageConfig {
   status: 0 | 1;
   gmtCreate: string;
   gmtModified: string;
+  dataSources?: DataSource[];
 }
 
 /** 属性面板标签页配置 */
@@ -136,4 +137,59 @@ export interface EventConfig {
   type: 'api' | 'function';
   api?: EventApiConfig;
   function?: string;
+}
+
+/** 数据源类型 */
+export type DataSourceType = 'API' | 'DATABASE' | 'STATIC';
+
+/** 数据源状态 */
+export type DataSourceStatus = 0 | 1;
+
+/** 请求方法 */
+export type HttpMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
+
+/** API数据源配置 */
+export interface ApiDataSourceConfig {
+  type: 'API';
+  url: string;
+  method: HttpMethod;
+  headers?: Record<string, string>;
+  params?: Record<string, any>;
+  body?: Record<string, any>;
+}
+
+/** 数据库数据源配置 */
+export interface DatabaseDataSourceConfig {
+  type: 'DATABASE';
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+  sql: string;
+}
+
+/** 静态数据源配置 */
+export interface StaticDataSourceConfig {
+  type: 'STATIC';
+  data: any;
+}
+
+/** 数据源配置 */
+export type DataSourceConfig =
+  | ApiDataSourceConfig
+  | DatabaseDataSourceConfig
+  | StaticDataSourceConfig;
+
+/** 数据源定义 */
+export interface DataSource {
+  id: string;
+  tenantId?: string;
+  dsCode: string;
+  dsName: string;
+  dsType: DataSourceType;
+  config: DataSourceConfig;
+  remark?: string;
+  status: DataSourceStatus;
+  variables?: Record<string, any>;
 }

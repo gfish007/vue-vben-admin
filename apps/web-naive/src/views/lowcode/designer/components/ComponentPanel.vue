@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" name="ComponentPanel">
 import type { ComponentDefinition } from '../../../../types/lowcode';
 
 import { computed } from 'vue';

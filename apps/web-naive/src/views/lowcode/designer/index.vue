@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" name="Designer">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -25,6 +25,10 @@ const handlePreview = () => {
 const handlePublish = () => {
   // TODO: 实现发布逻辑
 };
+
+const handleDataSourceClick = () => {
+  router.push('/lowcode/datasource');
+};
 </script>
 
 <template>
@@ -33,7 +37,7 @@ const handlePublish = () => {
       <div class="header-left">
         <template v-if="isEditingName">
           <NInput
-            v-model:value="pageName"
+            v-model="pageName"
             size="small"
             @blur="isEditingName = false"
             @keyup.enter="isEditingName = false"
@@ -71,6 +75,7 @@ const handlePublish = () => {
             </template>
             发布
           </NButton>
+          <NButton @click="handleDataSourceClick"> 数据源 </NButton>
         </NSpace>
       </div>
     </div>

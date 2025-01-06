@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" name="PropertyPanel">
 import type { ComponentInstance } from '../../../../types/lowcode';
 
 import { computed } from 'vue';
