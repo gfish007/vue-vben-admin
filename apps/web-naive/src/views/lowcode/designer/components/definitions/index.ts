@@ -13,4 +13,5 @@ export { RadioRender } from './RadioRender';
 export { SelectRender } from './SelectRender';
 export { SwitchRender } from './SwitchRender';
 export { TableRender } from './TableRender';
+export { TextRender } from './TextRender';
 export { TreeRender } from './TreeRender';

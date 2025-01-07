@@ -165,4 +165,40 @@ export const components: ComponentDefinition[] = [
       },
     },
   },
+  {
+    category: 'display',
+    componentCode: 'Text',
+    componentName: '文本',
+    defaultProps: {
+      content: '文本内容',
+      type: 'default',
+    },
+    defaultStyle: {
+      color: '#333',
+      fontSize: '14px',
+      lineHeight: '1.5',
+      width: '100%',
+    },
+    group: 'basic',
+    icon: 'text',
+    propsSchema: {
+      content: {
+        defaultValue: '文本内容',
+        label: '文本内容',
+        type: 'input',
+      },
+      type: {
+        defaultValue: 'default',
+        label: '文本类型',
+        options: [
+          { label: '默认', value: 'default' },
+          { label: '主要', value: 'primary' },
+          { label: '成功', value: 'success' },
+          { label: '警告', value: 'warning' },
+          { label: '错误', value: 'error' },
+        ],
+        type: 'select',
+      },
+    },
+  },
 ];

@@ -22,12 +22,14 @@ import {
 import { nanoid } from 'nanoid';
 
 import { useLowCodeStore } from '../../../../store/modules/lowcode';
+import ComponentRenderer from './ComponentRenderer.vue';
 import * as componentRenders from './definitions';
 
 // 初始化 store
 const store = useLowCodeStore();
 const message = useMessage();
 const isDragOver = ref(false);
+const dragPosition = ref({ x: 0, y: 0 });
 const activeDevice = ref<string>('iphone-se');
 
 // 设备配置
@@ -80,6 +82,13 @@ const handleDragOver = (event: DragEvent) => {
   event.preventDefault();
   event.dataTransfer!.dropEffect = 'copy';
   isDragOver.value = true;
+
+  // 更新拖拽位置
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  dragPosition.value = {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  };
 };
 
 const handleDragLeave = (event: DragEvent) => {
@@ -90,6 +99,11 @@ const handleDragLeave = (event: DragEvent) => {
   if (!target.contains(relatedTarget)) {
     isDragOver.value = false;
   }
+};
+
+const handleDragEnter = (event: DragEvent) => {
+  event.preventDefault();
+  isDragOver.value = true;
 };
 
 const handleDrop = (event: DragEvent) => {
@@ -117,12 +131,15 @@ const handleDrop = (event: DragEvent) => {
     const defaultStyle: Record<string, string> = {
       boxSizing: 'border-box',
       margin: '0',
-      padding: '4px 8px',
+      minHeight: '32px',
+      padding: '0',
+      width: '100%',
     };
 
     // 根据组件类型设置特定样式
     if (component.componentCode === 'Container') {
-      defaultStyle.minHeight = '240px';
+      defaultStyle.minHeight = '120px';
+      defaultStyle.padding = '8px';
     }
 
     // 合并自定义样式，确保外部传入的样式优先级更高
@@ -209,6 +226,7 @@ const handleDataSourceClick = () => {
   <div
     :class="{ 'drag-over': isDragOver }"
     class="design-canvas"
+    @dragenter="handleDragEnter"
     @dragleave="handleDragLeave"
     @dragover="handleDragOver"
     @drop="handleDrop"
@@ -246,53 +264,18 @@ const handleDataSourceClick = () => {
       </NSpace>
     </div>
     <div :style="deviceStyle" class="canvas-body">
-      <div
-        v-for="component in storeComponents"
-        :key="component.componentInstanceId"
-        class="component-outer"
-      >
+      <div class="canvas-content">
         <div
-          :class="{
-            active: store.currentComponentId === component.componentInstanceId,
-          }"
-          class="component-wrapper"
-          @click.stop="handleComponentClick(component)"
+          v-for="component in storeComponents"
+          :key="component.componentInstanceId"
+          class="component-outer"
         >
-          <div class="component-content">
-            <component
-              :is="getComponentRender(component.componentCode)"
-              v-bind="component.props"
-              :data-component-id="component.componentInstanceId"
-              :style="component.style"
-              @click.stop="handleComponentClick(component)"
-              @delete="deleteComponent(component.componentInstanceId)"
-            >
-              <!-- 如果是容器组件，渲染子组件 -->
-              <template
-                v-if="
-                  component.componentCode === 'Container' && component.children
-                "
-              >
-                <div
-                  v-for="child in component.children"
-                  :key="child.componentInstanceId"
-                  class="container-item"
-                >
-                  <component
-                    :is="getComponentRender(child.componentCode)"
-                    v-bind="child.props"
-                    :data-component-id="child.componentInstanceId"
-                    :style="child.style"
-                    @update:value="handlePropUpdate(child, 'value', $event)"
-                  />
-                </div>
-              </template>
-            </component>
-          </div>
+          <ComponentRenderer :node="component" @delete="deleteComponent" />
         </div>
-      </div>
-      <div v-if="storeComponents.length === 0" class="empty-tip">
-        从左侧拖入组件开始设计
+        <div v-if="storeComponents.length === 0" class="empty-tip">
+          <div class="tip-icon"></div>
+          <span>从左侧拖入组件开始设计</span>
+        </div>
       </div>
     </div>
   </div>
@@ -306,6 +289,29 @@ const handleDataSourceClick = () => {
   background-color: #f5f5f5;
   border-radius: 4px;
   overflow: hidden;
+  position: relative;
+
+  &.drag-over::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(24, 160, 88, 0.1);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  &.drag-over .canvas-body {
+    background-color: #fff;
+    box-shadow: 0 0 0 2px #18a058;
+  }
+
+  &.drag-over .empty-tip {
+    color: #18a058;
+    font-weight: 500;
+  }
 }
 
 .canvas-header {
@@ -316,6 +322,7 @@ const handleDataSourceClick = () => {
   background-color: #fff;
   border-bottom: 1px solid #f0f0f0;
   z-index: 1;
+  flex-shrink: 0;
 
   :deep(.n-select) {
     width: 160px;
@@ -331,100 +338,42 @@ const handleDataSourceClick = () => {
 .canvas-body {
   flex: 1;
   margin: 24px auto;
-  padding: 24px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   overflow: auto;
   position: relative;
   transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  min-height: 100%;
-  height: 100%;
+  min-height: 0;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
-:deep(.drag-over) .canvas-body::after {
-  opacity: 1;
+.canvas-content {
+  padding: 0;
+  min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .component-outer {
   position: relative;
   display: contents;
-}
-
-.component-wrapper {
-  position: relative;
-  display: contents;
-}
-
-.component-content {
-  position: relative;
-  display: inline;
-
-  > :deep(div),
-  > :deep(button) {
-    position: relative;
-    display: inline-block;
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: -1px;
-      left: -1px;
-      right: -1px;
-      bottom: -1px;
-      border: 1px dashed transparent;
-      border-radius: 2px;
-      pointer-events: none;
-      transition: all 0.2s ease;
-      z-index: 1;
-    }
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: -12px;
-      right: -12px;
-      width: 24px;
-      height: 24px;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      z-index: 100;
-      pointer-events: auto;
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23d03050"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>');
-      background-size: contain;
-      cursor: pointer;
-    }
-  }
-}
-
-.component-wrapper:hover,
-.component-wrapper.active {
-  .component-content {
-    > :deep(div),
-    > :deep(button) {
-      &::before {
-        border-color: #18a058;
-        background-color: rgba(24, 160, 88, 0.04);
-      }
-
-      &::after {
-        opacity: 1;
-      }
-    }
-  }
-}
-
-.delete-btn {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.component-content {
-  position: relative;
-  display: inline-flex;
-  min-width: min-content;
 }
 
 .empty-tip {
@@ -434,11 +383,34 @@ const handleDataSourceClick = () => {
   transform: translate(-50%, -50%);
   color: #999;
   font-size: 14px;
-}
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
 
-.container-item {
-  display: block;
-  margin: 0;
-  position: relative;
+  .tip-icon {
+    width: 48px;
+    height: 48px;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23999"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" /></svg>')
+      center/contain no-repeat;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+  }
+
+  .drag-over & {
+    transform: translate(-50%, -50%) scale(1.1);
+    color: #18a058;
+    background-color: rgba(24, 160, 88, 0.1);
+
+    .tip-icon {
+      opacity: 1;
+      transform: rotate(180deg);
+    }
+  }
 }
 </style>

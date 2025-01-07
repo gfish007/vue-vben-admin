@@ -103,8 +103,9 @@ const handleDataSourceClick = () => {
 .designer-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
   background-color: #f0f2f5;
+  overflow: hidden;
 }
 
 .designer-header {
@@ -116,6 +117,7 @@ const handleDataSourceClick = () => {
   background-color: #fff;
   border-bottom: 1px solid #f0f0f0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -143,8 +145,10 @@ const handleDataSourceClick = () => {
 .designer-body {
   flex: 1;
   display: flex;
-  gap: 1px;
-  padding: 1px;
+  gap: 16px;
+  padding: 16px;
+  height: calc(100vh - 56px);
+  box-sizing: border-box;
   min-height: 0;
 }
 
@@ -155,6 +159,7 @@ const handleDataSourceClick = () => {
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  height: 100%;
 
   &.left-panel {
     min-width: 400px;
@@ -168,9 +173,9 @@ const handleDataSourceClick = () => {
   }
 
   &.right-panel {
-    min-width: 450px;
+    min-width: 400px;
     max-width: 600px;
-    width: 30%;
+    width: 25%;
 
     .panel-header {
       background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
@@ -186,21 +191,24 @@ const handleDataSourceClick = () => {
   padding: 0 16px;
   font-size: 16px;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .panel-body {
   flex: 1;
   overflow: hidden;
+  padding: 16px;
   min-height: 0;
 }
 
 .designer-canvas {
   flex: 1;
   min-width: 375px;
-  margin: 0 16px;
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 </style>
