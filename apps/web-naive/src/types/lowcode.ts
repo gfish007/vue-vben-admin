@@ -93,6 +93,7 @@ export interface ComponentInstance {
   style: Partial<CSSStyleDeclaration>;
   children?: ComponentInstance[];
   parentId?: string;
+  hasCustomPropertyPanel?: boolean;
 }
 
 /** 组件关系 */

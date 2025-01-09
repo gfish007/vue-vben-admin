@@ -78,7 +78,7 @@ const getComponentRender = (componentCode: string) => {
   gap: 0 !important;
 }
 
-.container-item {
+.container-item2 {
   width: inherit;
   margin: 0;
 }

@@ -110,7 +110,22 @@ const handleDrop = (event: DragEvent) => {
   event.preventDefault();
   isDragOver.value = false;
 
+  const dragData = event.dataTransfer?.getData('component-drag');
   const componentData = event.dataTransfer?.getData('component');
+
+  if (dragData) {
+    // 处理组件移动
+    try {
+      const data = JSON.parse(dragData);
+      if (data.type === 'move') {
+        store.moveComponent(data.componentId, 'root');
+      }
+    } catch (error) {
+      console.error('Failed to parse drag data:', error);
+    }
+    return;
+  }
+
   if (!componentData) {
     message.error('无效的组件数据');
     return;
@@ -130,6 +145,10 @@ const handleDrop = (event: DragEvent) => {
     // 设置默认样式
     const defaultStyle: Record<string, string> = {
       boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: '1px',
       margin: '0',
       minHeight: '32px',
       padding: '0',
@@ -151,6 +170,7 @@ const handleDrop = (event: DragEvent) => {
       componentCode: component.componentCode,
       componentInstanceId: nanoid(),
       componentName: component.componentName,
+      hasCustomPropertyPanel: component.hasCustomPropertyPanel,
       props: defaultProps,
       propsSchema: component.propsSchema,
       style: mergedStyle,
@@ -223,14 +243,7 @@ const handleDataSourceClick = () => {
 </script>
 
 <template>
-  <div
-    :class="{ 'drag-over': isDragOver }"
-    class="design-canvas"
-    @dragenter="handleDragEnter"
-    @dragleave="handleDragLeave"
-    @dragover="handleDragOver"
-    @drop="handleDrop"
-  >
+  <div class="design-canvas">
     <div class="canvas-header">
       <NSelect
         :options="deviceOptions"
@@ -264,14 +277,21 @@ const handleDataSourceClick = () => {
       </NSpace>
     </div>
     <div :style="deviceStyle" class="canvas-body">
-      <div class="canvas-content">
-        <div
+      <div
+        :class="[{ 'drag-over': isDragOver && storeComponents.length === 0 }]"
+        class="canvas-content"
+        @dragenter="handleDragEnter"
+        @dragleave="handleDragLeave"
+        @dragover="handleDragOver"
+        @drop="handleDrop"
+      >
+        <ComponentRenderer
           v-for="component in storeComponents"
           :key="component.componentInstanceId"
-          class="component-outer"
-        >
-          <ComponentRenderer :node="component" @delete="deleteComponent" />
-        </div>
+          :is-preview="false"
+          :node="component"
+          @delete="deleteComponent"
+        />
         <div v-if="storeComponents.length === 0" class="empty-tip">
           <div class="tip-icon"></div>
           <span>从左侧拖入组件开始设计</span>
@@ -290,28 +310,6 @@ const handleDataSourceClick = () => {
   border-radius: 4px;
   overflow: hidden;
   position: relative;
-
-  &.drag-over::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(24, 160, 88, 0.1);
-    pointer-events: none;
-    z-index: 10;
-  }
-
-  &.drag-over .canvas-body {
-    background-color: #fff;
-    box-shadow: 0 0 0 2px #18a058;
-  }
-
-  &.drag-over .empty-tip {
-    color: #18a058;
-    font-weight: 500;
-  }
 }
 
 .canvas-header {
@@ -362,18 +360,19 @@ const handleDataSourceClick = () => {
 }
 
 .canvas-content {
-  padding: 0;
+  padding: 1px;
   min-height: 100%;
   width: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 1px;
-}
 
-.component-outer {
-  position: relative;
-  display: contents;
+  &.drag-over {
+    background-color: rgba(24, 160, 88, 0.05);
+    outline: 2px dashed #18a058;
+    outline-offset: -1px;
+  }
 }
 
 .empty-tip {
