@@ -45,7 +45,7 @@ const wrapperStyle = computed(() => {
     boxSizing: 'border-box',
     display: style.display || 'block',
     height: style.height || 'auto',
-    margin: style.margin || '0',
+    // margin: style.margin || '0',
     maxHeight: style.maxHeight,
     maxWidth: style.maxWidth,
     minHeight: style.minHeight || '32px',
@@ -336,9 +336,8 @@ const handleMouseLeave = () => {
   justify-content: inherit;
   align-items: inherit;
   width: 100%;
-  min-height: 32px;
+  height: 100%;
   flex: 1;
-  padding: 8px;
   position: relative;
   z-index: 1;
 

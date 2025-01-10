@@ -76,7 +76,7 @@ export const SpanRender = (props: any) => {
   return h(
     'div',
     {
-      style: finalStyle,
+      style,
     },
     content,
   );
