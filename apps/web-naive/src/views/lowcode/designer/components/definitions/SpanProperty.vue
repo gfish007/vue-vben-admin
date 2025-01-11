@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" name="SpanProperty">
 import type { ComponentInstance } from '../../../../../types/lowcode';
 
 import {
@@ -13,6 +13,10 @@ import {
 } from 'naive-ui';
 
 import { useLowCodeStore } from '../../../../../store/modules/lowcode';
+
+defineOptions({
+  name: 'SpanProperty',
+});
 
 const props = defineProps<{
   component: ComponentInstance;

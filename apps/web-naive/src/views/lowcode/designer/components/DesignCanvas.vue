@@ -170,7 +170,7 @@ const handleDrop = (event: DragEvent) => {
       componentCode: component.componentCode,
       componentInstanceId: nanoid(),
       componentName: component.componentName,
-      hasCustomPropertyPanel: component.hasCustomPropertyPanel,
+      propertyPanel: component.propertyPanel,
       props: defaultProps,
       propsSchema: component.propsSchema,
       style: mergedStyle,

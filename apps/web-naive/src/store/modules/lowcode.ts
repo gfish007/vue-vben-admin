@@ -1,7 +1,15 @@
-import type { ComponentInstance } from '../../types/lowcode';
+import type { DataSourceApi } from '../../api/lowcode/dataSource.types';
+import type { ComponentInstance, DataSource } from '../../types/lowcode';
 
 import { nanoid } from 'nanoid';
 import { defineStore } from 'pinia';
+
+import {
+  deleteDataSource,
+  getDataSourceDetail,
+  queryDataSourceList,
+  saveOrUpdateDataSource,
+} from '../../api/lowcode/dataSource';
 
 // 定义状态接口
 interface LowCodeState {
@@ -9,6 +17,14 @@ interface LowCodeState {
   components: ComponentInstance[];
   // 当前选中的组件ID
   currentComponentId: null | string;
+  // 数据源列表
+  dataSources: DataSource[];
+  // 数据源分页
+  dataSourcePagination: {
+    current: number;
+    size: number;
+    total: number;
+  };
 }
 
 export const useLowCodeStore = defineStore('lowcode', {
@@ -56,6 +72,25 @@ export const useLowCodeStore = defineStore('lowcode', {
       return added;
     },
 
+    async addDataSource(dataSource: Omit<DataSource, 'id'>) {
+      try {
+        const res = await saveOrUpdateDataSource(dataSource);
+        if (res.data) {
+          await this.loadDataSources({
+            page: {
+              current: this.dataSourcePagination.current,
+              size: this.dataSourcePagination.size,
+            },
+            queryBody: {},
+          });
+        }
+        return res.data;
+      } catch (error) {
+        console.error('Failed to add data source:', error);
+        throw error;
+      }
+    },
+
     // 查找组件及其父组件
     findComponentWithParent(id: string): {
       component: ComponentInstance | null;
@@ -81,6 +116,29 @@ export const useLowCodeStore = defineStore('lowcode', {
         return { component: null, parent: null };
       };
       return find(this.components);
+    },
+
+    async getDataSource(id: string) {
+      try {
+        const res = await getDataSourceDetail(id);
+        return res.data;
+      } catch (error) {
+        console.error('Failed to get data source:', error);
+        throw error;
+      }
+    },
+
+    // 数据源相关方法
+    async loadDataSources(params: DataSourceApi.QueryParams) {
+      try {
+        const data = await queryDataSourceList(params);
+
+        this.dataSources = data.records;
+        this.dataSourcePagination.total = data.total;
+      } catch (error) {
+        console.error('Failed to load data sources:', error);
+        throw error;
+      }
     },
 
     // 移动组件
@@ -147,6 +205,22 @@ export const useLowCodeStore = defineStore('lowcode', {
       return false;
     },
 
+    async removeDataSource(id: string) {
+      try {
+        await deleteDataSource(id);
+        await this.loadDataSources({
+          page: {
+            current: this.dataSourcePagination.current,
+            size: this.dataSourcePagination.size,
+          },
+          queryBody: {},
+        });
+      } catch (error) {
+        console.error('Failed to delete data source:', error);
+        throw error;
+      }
+    },
+
     // 设置当前选中的组件
     setCurrentComponentId(id: string) {
       this.currentComponentId = id;
@@ -161,6 +235,25 @@ export const useLowCodeStore = defineStore('lowcode', {
         return true;
       }
       return false;
+    },
+
+    async updateDataSource(id: string, dataSource: DataSource) {
+      try {
+        const res = await saveOrUpdateDataSource({ ...dataSource, id });
+        if (res.data) {
+          await this.loadDataSources({
+            page: {
+              current: this.dataSourcePagination.current,
+              size: this.dataSourcePagination.size,
+            },
+            queryBody: {},
+          });
+        }
+        return res.data;
+      } catch (error) {
+        console.error('Failed to update data source:', error);
+        throw error;
+      }
     },
   },
 
@@ -178,5 +271,11 @@ export const useLowCodeStore = defineStore('lowcode', {
   state: (): LowCodeState => ({
     components: [],
     currentComponentId: null,
+    dataSourcePagination: {
+      current: 1,
+      size: 10,
+      total: 0,
+    },
+    dataSources: [],
   }),
 });

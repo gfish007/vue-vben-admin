@@ -72,6 +72,29 @@ export interface PropSchema {
   type: 'checkbox' | 'input' | 'number' | 'radio' | 'select' | 'switch';
 }
 
+/** 属性面板标签页类型 */
+export type PropertyPanelTabType =
+  | 'advanced'
+  | 'data'
+  | 'event'
+  | 'props'
+  | 'style';
+
+/** 属性面板配置 */
+export interface PropertyPanelConfig {
+  /** 启用的标签页 */
+  enabledTabs: PropertyPanelTabType[];
+  /** 自定义属性面板组件 */
+  customPanels?: {
+    advanced?: string;
+    data?: string;
+    event?: string;
+    props?: string;
+    style?: string;
+  };
+}
+
+/** 组件定义 */
 export interface ComponentDefinition {
   category: 'display' | 'feedback' | 'form' | 'layout';
   componentCode: string;
@@ -81,6 +104,8 @@ export interface ComponentDefinition {
   group: 'basic' | 'business';
   icon: string;
   propsSchema: Record<string, PropSchema>;
+  /** 属性面板配置 */
+  propertyPanel: PropertyPanelConfig;
 }
 
 /** 组件实例 */
@@ -93,7 +118,12 @@ export interface ComponentInstance {
   style: Partial<CSSStyleDeclaration>;
   children?: ComponentInstance[];
   parentId?: string;
-  hasCustomPropertyPanel?: boolean;
+  /** 属性面板配置 */
+  propertyPanel?: PropertyPanelConfig;
+  /** 数据源配置 */
+  dataSource?: DataSource;
+  /** 事件配置 */
+  events?: EventConfig;
 }
 
 /** 组件关系 */

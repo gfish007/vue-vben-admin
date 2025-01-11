@@ -1,13 +1,19 @@
-import type { BasePageParams } from '../../types/base';
 import type { DataSource } from '../../types/lowcode';
 
 export namespace DataSourceApi {
-  export interface QueryParams extends BasePageParams {
+  export interface QueryParams {
+    page: {
+      current: number;
+      size: number;
+    };
     queryBody: {
       dsCode?: string;
       dsName?: string;
     };
   }
 
-  export type QueryResult = DataSource;
+  export interface QueryResult extends DataSource {
+    createTime: string;
+    updateTime: string;
+  }
 }

@@ -1,16 +1,20 @@
+import type { ComponentRelation } from '#/types/lowcode';
+
 import { ref } from 'vue';
-import { useLowCodeStore } from '#/store/modules/lowcode';
-import { useHistory } from './useHistory';
-import type { Component, ComponentRelation } from '#/types/lowcode';
+
 import { v4 as uuidv4 } from 'uuid';
+
+import { useLowCodeStore } from '#/store/modules/lowcode';
+
+import { useHistory } from './useHistory';
 
 export function useDragDrop() {
   const store = useLowCodeStore();
   const { addHistory } = useHistory();
-  
+
   // 拖拽状态
-  const dragoverNodeId = ref<string | null>(null);
-  const dragPosition = ref<'before' | 'after' | 'inside' | null>(null);
+  const dragoverNodeId = ref<null | string>(null);
+  const dragPosition = ref<'after' | 'before' | 'inside' | null>(null);
 
   // 处理拖拽进入
   const handleDragEnter = (e: DragEvent, nodeId: string) => {
@@ -21,7 +25,7 @@ export function useDragDrop() {
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
-    
+
     if (offsetY < rect.height * 0.25) {
       dragPosition.value = 'before';
     } else if (offsetY > rect.height * 0.75) {
@@ -29,9 +33,11 @@ export function useDragDrop() {
     } else {
       // 检查是否是容器组件
       const component = store.components.find(
-        (item) => item.componentCode === store.componentRelations.find(
-          (rel) => rel.componentInstanceId === nodeId,
-        )?.componentCode,
+        (item) =>
+          item.componentCode ===
+          store.componentRelations.find(
+            (rel) => rel.componentInstanceId === nodeId,
+          )?.componentCode,
       );
       dragPosition.value = component?.isContainer ? 'inside' : 'after';
     }
@@ -45,7 +51,7 @@ export function useDragDrop() {
   };
 
   // 处理拖拽放置
-  const handleDrop = (e: DragEvent, targetId: string | null = null) => {
+  const handleDrop = (e: DragEvent, targetId: null | string = null) => {
     e.preventDefault();
     const position = dragPosition.value;
     dragoverNodeId.value = null;
@@ -68,9 +74,9 @@ export function useDragDrop() {
 
       if (position === 'inside') {
         parentId = targetId;
-        index = store.componentRelations
-          .filter((item) => item.parentInstanceId === parentId)
-          .length;
+        index = store.componentRelations.filter(
+          (item) => item.parentInstanceId === parentId,
+        ).length;
       } else if (position === 'after') {
         index += 1;
       }
@@ -92,17 +98,18 @@ export function useDragDrop() {
 
     // 创建组件实例
     const componentInstance: ComponentRelation = {
-      id: 0,
-      tenantId: '',
-      pageCode: store.currentPage?.pageCode || '',
-      version: '1.0.0',
-      componentInstanceId: uuidv4(),
-      parentInstanceId: targetId,
       componentCode: component.componentCode,
+      componentInstanceId: uuidv4(),
+      id: 0,
+      pageCode: store.currentPage?.pageCode || '',
+      parentInstanceId: targetId,
+      propertyPanel: component.propertyPanel,
       props: { ...component.defaultProps },
       sortOrder: store.componentRelations.filter(
         (item) => item.parentInstanceId === targetId,
       ).length,
+      tenantId: '',
+      version: '1.0.0',
     };
 
     // 添加到组件关系中
@@ -117,4 +124,4 @@ export function useDragDrop() {
     handleDragLeave,
     handleDrop,
   };
-} 
+}

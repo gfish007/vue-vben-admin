@@ -14,3 +14,19 @@ export interface BasePageResult<T> {
   size: number;
   current: number;
 }
+
+/** 基础响应接口 */
+export interface BaseResponse<T = any> {
+  code: number;
+  data: T;
+  message: string;
+  success: boolean;
+}
+
+/** 基础分页结果接口 */
+export interface BasePageResult<T = any> {
+  current: number;
+  records: T[];
+  size: number;
+  total: number;
+}

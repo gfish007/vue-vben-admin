@@ -178,7 +178,7 @@ const handleDrop = (event: DragEvent) => {
         componentCode: component.componentCode,
         componentInstanceId: nanoid(),
         componentName: component.componentName,
-        hasCustomPropertyPanel: component.hasCustomPropertyPanel, // 添加自定义属性面板标志
+        propertyPanel: component.propertyPanel,
         props: { ...component.defaultProps },
         propsSchema: component.propsSchema,
         style: { ...component.defaultStyle }, // 确保应用默认样式

@@ -1,10 +1,10 @@
-import type { Component } from '#/types/lowcode';
+import type { ComponentDefinition } from '../../../../../types/lowcode';
 
 /**
  * 文本组件定义
  * 用于显示文本内容
  */
-export const Span: Component = {
+export const Span: ComponentDefinition = {
   // 组件分类
   category: 'display',
   componentCode: 'Span',
@@ -29,10 +29,17 @@ export const Span: Component = {
     padding: '8px',
     width: '100px', // 固定宽度
   },
-  // 是否使用自定义属性面板
-  hasCustomPropertyPanel: true,
   // 组件图标
   icon: 'text',
+  // 属性面板配置
+  propertyPanel: {
+    // 自定义面板组件
+    customPanels: {
+      props: 'SpanProperty', // 使用自定义属性面板
+    },
+    // 启用的标签页 'props', 'style', 'data', 'event'
+    enabledTabs: ['props', 'data', 'event'],
+  },
   // 属性配置面板
   propsSchema: {
     content: {
