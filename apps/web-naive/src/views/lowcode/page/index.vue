@@ -1,38 +1,34 @@
 <script setup lang="ts">
+import type { PageApi } from '#/api/lowcode/page.types';
+
 import { h, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
 import { Page } from '@vben/common-ui';
+
 import {
   NButton,
   NButtonGroup,
   NCard,
   NDataTable,
   NForm,
-  NFormItem,
   NInput,
   NSelect,
   NSpace,
   useMessage,
 } from 'naive-ui';
-import { queryPageList, deletePages } from '#/api/lowcode/page';
-import type { PageApi } from '#/api/lowcode/page.types';
+
+import { deletePages, queryPageList } from '#/api/lowcode/page';
 import { useDynamicHeight } from '#/utils/heightUtils';
+
 import PageModal from './components/PageModal.vue';
-import { useRouter } from 'vue-router';
 
 const message = useMessage();
 const router = useRouter();
 
 // 分页参数
 const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  pageCount: 1,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50],
-  itemCount: 0,  // 总条数
-  total: 0,      // 总条数
-  prefix: ({ itemCount }: { itemCount: number }) => `共 ${itemCount} 条`,
-  
+  itemCount: 0, // 总条数
   onChange: (page: number) => {
     pagination.page = page;
     fetchData();
@@ -41,7 +37,15 @@ const pagination = reactive({
     pagination.pageSize = pageSize;
     pagination.page = 1;
     fetchData();
-  }
+  },
+  page: 1,
+  pageCount: 1,
+  pageSize: 10,
+  pageSizes: [10, 20, 50],
+  prefix: ({ itemCount }: { itemCount: number }) => `共 ${itemCount} 条`,
+
+  showSizePicker: true,
+  total: 0, // 总条数
 });
 
 // 查询条件
@@ -73,13 +77,12 @@ const fetchData = async () => {
     pagination.total = result.total;
     pagination.itemCount = result.total;
     pagination.pageCount = Math.ceil(result.total / pagination.pageSize);
-    
+
     // 更新表格数据
     tableData.value = result.records;
 
     console.log('Table Data:', tableData.value);
     console.log('Pagination:', pagination);
-
   } catch (error) {
     console.error('获取数据失败:', error);
     message.error('获取数据失败');
@@ -110,7 +113,7 @@ const handleDelete = async (ids: number[]) => {
     await deletePages(ids);
     message.success('删除成功');
     fetchData();
-  } catch (err) {
+  } catch {
     message.error('删除失败');
   }
 };
@@ -137,20 +140,20 @@ const columns = [
   },
   {
     key: 'pageType',
-    title: '页面类型',
-    width: 120,
     render: (row: PageApi.PageRecord) => {
       const option = pageTypeOptions.find((opt) => opt.value === row.pageType);
       return option?.label || row.pageType;
     },
+    title: '页面类型',
+    width: 120,
   },
   {
     key: 'status',
-    title: '状态',
-    width: 100,
     render: (row: PageApi.PageRecord) => {
       return row.status === 1 ? '启用' : '禁用';
     },
+    title: '状态',
+    width: 100,
   },
   {
     key: 'gmtCreate',
@@ -165,8 +168,6 @@ const columns = [
   {
     fixed: 'right',
     key: 'actions',
-    title: '操作',
-    width: 200,
     render: (row: PageApi.PageRecord) => {
       return h(
         NButtonGroup,
@@ -201,6 +202,8 @@ const columns = [
         },
       );
     },
+    title: '操作',
+    width: 200,
   },
 ];
 
@@ -222,10 +225,14 @@ const handleEdit = (row: PageApi.PageRecord) => {
 
 // 处理设计
 const handleDesign = (row: PageApi.PageRecord) => {
+  const pageCode = row.pageCode;
+  const version = row.version || '1.0.0'; // 如果没有version就使用默认值
+  console.log('Navigating to designer with:', { pageCode, version });
   router.push({
     name: 'LowcodeDesigner',
-    params: {
-      pageCode: row.pageCode,
+    query: {
+      pageCode,
+      version,
     },
   });
 };
@@ -251,7 +258,7 @@ onMounted(() => {
   <Page title="页面管理">
     <!-- 查询区域 -->
     <div ref="queryCardRef" class="w-full">
-      <NCard class="query-card mb-1 py-1 px-2">
+      <NCard class="query-card mb-1 px-2 py-1">
         <NForm :model="queryForm" inline>
           <NSpace
             :size="[24, 0]"
@@ -262,20 +269,20 @@ onMounted(() => {
             <NSpace :size="24" align="center">
               <NInput
                 v-model:value="queryForm.pageCode"
-                placeholder="页面编码"
                 class="query-input"
+                placeholder="页面编码"
               />
               <NInput
                 v-model:value="queryForm.pageName"
-                placeholder="页面名称"
                 class="query-input"
+                placeholder="页面名称"
               />
               <NSelect
                 v-model:value="queryForm.pageType"
                 :options="pageTypeOptions"
+                class="query-input"
                 clearable
                 placeholder="页面类型"
-                class="query-input"
               />
             </NSpace>
             <NSpace>
@@ -299,13 +306,13 @@ onMounted(() => {
         :columns="columns"
         :data="tableData"
         :loading="loading"
-        remote
-        :pagination="pagination"
         :max-height="`${tableHeight}px`"
         :min-height="`${tableHeight}px`"
+        :pagination="pagination"
         :scroll-x="1100"
         :single-line="false"
         flex-height
+        remote
         striped
       />
     </NCard>
@@ -340,4 +347,4 @@ onMounted(() => {
   flex: 1;
   overflow: auto;
 }
-</style> 
+</style>

@@ -1,63 +1,73 @@
+import type { BasePageResult, BaseResponse } from '../../types/base';
 import type { PageApi } from './page.types';
-import { requestClient } from '#/api/request';
-import { mockPageDetail } from './_mock';
 
-/** 查询页面列表 */
+import { requestClient } from '../request';
+
+/**
+ * 查询页面列表
+ */
 export async function queryPageList(params: PageApi.QueryParams) {
-  // return requestClient.post<PageApi.QueryResult>('/open/lcPageConfig/list', params);
-  
-  // Mock response
-  return Promise.resolve({
-    total: 2,
-    records: [
-      {
-        id: 1,
-        pageCode: 'test_page',
-        pageName: '测试页面',
-        pageType: 'FORM',
-        status: 1,
-        gmtCreate: '2024-01-01 00:00:00',
-        gmtModified: '2024-01-01 00:00:00',
-      },
-      {
-        id: 2,
-        pageCode: 'test_page2',
-        pageName: '测试页面2',
-        pageType: 'LIST',
-        status: 1,
-        gmtCreate: '2024-01-01 00:00:00',
-        gmtModified: '2024-01-01 00:00:00',
-      },
-    ],
-  });
+  return requestClient.post<BaseResponse<BasePageResult<PageApi.QueryResult>>>(
+    '/open/lcPage/list',
+    params,
+  );
 }
 
-/** 获取页面详情 */
-export async function getPageDetail(pageCode: string) {
-  // return requestClient.get<PageApi.PageRecord>(`/open/lcPageConfig/page/${id}`);
-  
-  // Mock response
-  return Promise.resolve({
-    ...mockPageDetail,
-    pageCode,
-  });
+/**
+ * 保存或更新页面
+ */
+export async function saveOrUpdatePage(
+  params: Omit<PageApi.QueryResult, 'id'>,
+) {
+  return requestClient.post<BaseResponse<PageApi.QueryResult>>(
+    '/open/lcPage/saveOrUpdate',
+    params,
+  );
 }
 
-/** 保存或更新页面 */
-export async function saveOrUpdatePage(params: PageApi.PageRecord) {
-  // return requestClient.post<PageApi.PageRecord>('/open/lcPageConfig/saveOrUpdate', params);
-  
-  // Mock response
-  return Promise.resolve({
-    ...mockPageDetail,
-    ...params,
-  });
+/**
+ * 获取页面详情
+ */
+export async function getPageInfo(id: string) {
+  return requestClient.get<BaseResponse<PageApi.QueryResult>>(
+    `/open/lcPage/${id}`,
+  );
 }
 
-/** 删除页面 */
-export async function deletePages(ids: number[]) {
-  // return requestClient.delete<void>('/open/lcPageConfig/remove', { data: ids });
-  
-  // Mock response
-  return Promise.resolve();
-} 
+/**
+ * 删除页面
+ */
+export async function deletePages(id: string) {
+  return requestClient.delete<BaseResponse<void>>(`/open/lcPage/${id}`);
+}
+
+/**
+ * 发布页面
+ */
+export async function publishPage(id: string) {
+  return requestClient.post<BaseResponse<void>>(`/open/lcPage/publish/${id}`);
+}
+
+/**
+ * 禁用页面
+ */
+export async function disablePage(id: string) {
+  return requestClient.post<BaseResponse<void>>(`/open/lcPage/disable/${id}`);
+}
+
+/**
+ * 启用页面
+ */
+export async function enablePage(id: string) {
+  return requestClient.post<BaseResponse<void>>(`/open/lcPage/enable/${id}`);
+}
+
+/**
+ * 获取页面详情
+ */
+export function getPageDetail(params: { pageCode: string; version: string }) {
+  return requestClient.get<BaseResponse<PageApi.QueryResult>>(
+    `/open/lcPage/detail`,
+    { params },
+  );
+}

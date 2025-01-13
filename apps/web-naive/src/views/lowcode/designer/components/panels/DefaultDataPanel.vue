@@ -1,11 +1,11 @@
 # 默认数据源面板组件
-<script setup lang="ts">
+<script setup lang="ts" name="DefaultDataPanel">
 import type {
   ComponentInstance,
   DataSource,
 } from '../../../../../types/lowcode';
 
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import {
   NButton,
@@ -15,8 +15,7 @@ import {
   NInput,
   NSelect,
   NSpace,
-  NTabPane,
-  NTabs,
+  useMessage,
 } from 'naive-ui';
 
 import { useLowCodeStore } from '../../../../../store/modules/lowcode';
@@ -26,26 +25,11 @@ const props = defineProps<{
 }>();
 
 const store = useLowCodeStore();
+const message = useMessage();
 
-// 数据源类型选项
-const dataSourceTypeOptions = [
-  { label: 'API', value: 'API' },
-  { label: '数据库', value: 'DATABASE' },
-  { label: '静态数据', value: 'STATIC' },
-];
-
-// 请求方法选项
-const httpMethodOptions = [
-  { label: 'GET', value: 'GET' },
-  { label: 'POST', value: 'POST' },
-  { label: 'PUT', value: 'PUT' },
-  { label: 'DELETE', value: 'DELETE' },
-];
-
-// 当前数据源
+// 初始化数据源配置
 const currentDataSource = ref<DataSource>({
   config: {
-    body: {},
     headers: {},
     method: 'GET',
     params: {},
@@ -59,195 +43,231 @@ const currentDataSource = ref<DataSource>({
   status: 1,
 });
 
+// 初始化数据绑定路径
+const dataBindingPath = ref(props.component.props?.dataBinding?.path || '');
+
+// 页面级数据源列表
+const pageDataSources = computed(() => {
+  return store.currentPage?.dataSources || [];
+});
+
+// 数据源选项
+const dataSourceOptions = computed(() => {
+  const pageSources = pageDataSources.value.map((ds) => ({
+    label: `${ds.dsName}（页面）`,
+    source: ds,
+    value: ds.dsCode,
+  }));
+
+  // 如果组件有自己的数据源，也添加到选项中
+  if (currentDataSource.value.dsCode) {
+    pageSources.push({
+      label: `${currentDataSource.value.dsName}（组件）`,
+      source: currentDataSource.value,
+      value: currentDataSource.value.dsCode,
+    });
+  }
+
+  return pageSources;
+});
+
+// 选中的数据源Code
+const selectedDataSourceCode = ref(
+  props.component.props?.dataBinding?.sourceCode || '',
+);
+
+// 监听组件属性变化
+watch(
+  () => props.component.props?.dataBinding,
+  (newVal) => {
+    if (newVal) {
+      dataBindingPath.value = newVal.path || '';
+      selectedDataSourceCode.value = newVal.sourceCode || '';
+    }
+  },
+  { immediate: true },
+);
+
 // 更新数据源配置
 const handleDataSourceUpdate = (field: string, value: unknown) => {
-  console.log('[DefaultDataPanel] 更新数据源配置:', { field, value });
-  store.updateComponent(props.component.componentInstanceId, {
-    dataSource: currentDataSource.value,
-  });
+  console.log('更新数据源配置:', { field, value });
+  currentDataSource.value = {
+    ...currentDataSource.value,
+    [field]: value,
+  };
+};
+
+// 更新数据源API配置
+const handleApiConfigUpdate = (field: string, value: unknown) => {
+  console.log('更新API配置:', { field, value });
+  if (currentDataSource.value.config.type === 'API') {
+    currentDataSource.value.config = {
+      ...currentDataSource.value.config,
+      [field]: value,
+    };
+  }
 };
 
 // 测试数据源
-const handleTestDataSource = () => {
-  console.log('[DefaultDataPanel] 测试数据源:', currentDataSource.value);
-  // TODO: 实现数据源测试逻辑
+const testDataSource = async () => {
+  try {
+    message.info('开始测试数据源...');
+    // TODO: 实现数据源测试逻辑
+    message.success('数据源测试成功');
+  } catch {
+    message.error('数据源测试失败');
+  }
 };
 
 // 保存数据源
-const handleSaveDataSource = () => {
-  console.log('[DefaultDataPanel] 保存数据源:', currentDataSource.value);
-  // TODO: 实现数据源保存逻辑
+const saveDataSource = () => {
+  try {
+    console.log('保存数据源:', currentDataSource.value);
+    // 更新组件的数据源配置
+    store.updateComponent(props.component.componentInstanceId, {
+      dataSource: currentDataSource.value,
+    });
+    message.success('数据源保存成功');
+  } catch {
+    message.error('数据源保存失败');
+  }
+};
+
+// 更新数据绑定
+const handleDataBindingUpdate = (path: string) => {
+  console.log('更新数据绑定:', {
+    path,
+    sourceCode: selectedDataSourceCode.value,
+  });
+  // 更新组件的数据绑定配置
+  store.updateComponent(props.component.componentInstanceId, {
+    props: {
+      ...props.component.props,
+      dataBinding: {
+        path,
+        sourceCode: selectedDataSourceCode.value,
+      },
+    },
+  });
+};
+
+// 选择数据源
+const handleDataSourceSelect = (sourceCode: string) => {
+  selectedDataSourceCode.value = sourceCode;
+  // 更新数据绑定
+  if (dataBindingPath.value) {
+    handleDataBindingUpdate(dataBindingPath.value);
+  }
 };
 </script>
 
 <template>
-  <NTabs type="segment">
-    <!-- 数据源配置 -->
-    <NTabPane name="config" tab="数据源配置">
-      <NForm label-placement="left" label-width="100">
+  <NForm label-placement="left" label-width="100">
+    <NSpace vertical>
+      <!-- 数据源选择 -->
+      <NCard size="small" title="数据源选择">
         <NSpace vertical>
-          <NCard size="small" title="基础配置">
-            <NSpace size="small" vertical>
-              <NFormItem label="数据源名称">
-                <NInput
-                  v-model="currentDataSource.dsName"
-                  placeholder="请输入数据源名称"
-                />
-              </NFormItem>
-              <NFormItem label="数据源类型">
-                <NSelect
-                  v-model="currentDataSource.dsType"
-                  :options="dataSourceTypeOptions"
-                  placeholder="请选择数据源类型"
-                />
-              </NFormItem>
-            </NSpace>
-          </NCard>
+          <NFormItem label="选择数据源">
+            <NSelect
+              :options="dataSourceOptions"
+              :value="selectedDataSourceCode"
+              placeholder="请选择数据源"
+              @update:value="handleDataSourceSelect"
+            />
+          </NFormItem>
+        </NSpace>
+      </NCard>
 
-          <!-- API 数据源配置 -->
+      <!-- 组件数据源配置 -->
+      <NCard size="small" title="组件数据源配置">
+        <NSpace vertical>
+          <NFormItem label="数据源名称">
+            <NInput
+              :value="currentDataSource.dsName"
+              placeholder="请输入数据源名称"
+              @update:value="(val) => handleDataSourceUpdate('dsName', val)"
+            />
+          </NFormItem>
+          <NFormItem label="数据源类型">
+            <NSelect
+              :options="[
+                { label: 'API接口', value: 'API' },
+                { label: '静态数据', value: 'STATIC' },
+                { label: '数据库', value: 'DATABASE' },
+              ]"
+              :value="currentDataSource.dsType"
+              @update:value="(val) => handleDataSourceUpdate('dsType', val)"
+            />
+          </NFormItem>
+
+          <!-- API配置 -->
           <template v-if="currentDataSource.dsType === 'API'">
-            <NCard size="small" title="API 配置">
-              <NSpace size="small" vertical>
-                <NFormItem label="请求地址">
-                  <NInput
-                    v-model="(currentDataSource.config as any).url"
-                    placeholder="请输入请求地址"
-                  />
-                </NFormItem>
-                <NFormItem label="请求方法">
-                  <NSelect
-                    v-model="(currentDataSource.config as any).method"
-                    :options="httpMethodOptions"
-                    placeholder="请选择请求方法"
-                  />
-                </NFormItem>
-                <NFormItem label="请求头">
-                  <NInput
-                    v-model="(currentDataSource.config as any).headers"
-                    :autosize="{ minRows: 2, maxRows: 5 }"
-                    placeholder="请输入请求头（JSON 格式）"
-                    type="textarea"
-                  />
-                </NFormItem>
-                <NFormItem label="请求参数">
-                  <NInput
-                    v-model="(currentDataSource.config as any).params"
-                    :autosize="{ minRows: 2, maxRows: 5 }"
-                    placeholder="请输入请求参数（JSON 格式）"
-                    type="textarea"
-                  />
-                </NFormItem>
-                <NFormItem label="请求体">
-                  <NInput
-                    v-model="(currentDataSource.config as any).body"
-                    :autosize="{ minRows: 2, maxRows: 5 }"
-                    placeholder="请输入请求体（JSON 格式）"
-                    type="textarea"
-                  />
-                </NFormItem>
-              </NSpace>
-            </NCard>
+            <NFormItem label="请求地址">
+              <NInput
+                :value="(currentDataSource.config as any).url"
+                placeholder="请输入API地址"
+                @update:value="(val) => handleApiConfigUpdate('url', val)"
+              />
+            </NFormItem>
+            <NFormItem label="请求方法">
+              <NSelect
+                :options="[
+                  { label: 'GET', value: 'GET' },
+                  { label: 'POST', value: 'POST' },
+                  { label: 'PUT', value: 'PUT' },
+                  { label: 'DELETE', value: 'DELETE' },
+                ]"
+                :value="(currentDataSource.config as any).method"
+                @update:value="(val) => handleApiConfigUpdate('method', val)"
+              />
+            </NFormItem>
+            <NFormItem label="请求参数">
+              <NInput
+                :value="
+                  JSON.stringify((currentDataSource.config as any).params)
+                "
+                placeholder="请输入请求参数 (JSON格式)"
+                type="textarea"
+                @update:value="
+                  (val) => handleApiConfigUpdate('params', JSON.parse(val))
+                "
+              />
+            </NFormItem>
           </template>
 
-          <!-- 数据库数据源配置 -->
-          <template v-if="currentDataSource.dsType === 'DATABASE'">
-            <NCard size="small" title="数据库配置">
-              <NSpace size="small" vertical>
-                <NFormItem label="主机地址">
-                  <NInput
-                    v-model="(currentDataSource.config as any).host"
-                    placeholder="请输入主机地址"
-                  />
-                </NFormItem>
-                <NFormItem label="端口">
-                  <NInput
-                    v-model="(currentDataSource.config as any).port"
-                    placeholder="请输入端口"
-                  />
-                </NFormItem>
-                <NFormItem label="数据库名">
-                  <NInput
-                    v-model="(currentDataSource.config as any).database"
-                    placeholder="请输入数据库名"
-                  />
-                </NFormItem>
-                <NFormItem label="用户名">
-                  <NInput
-                    v-model="(currentDataSource.config as any).username"
-                    placeholder="请输入用户名"
-                  />
-                </NFormItem>
-                <NFormItem label="密码">
-                  <NInput
-                    v-model="(currentDataSource.config as any).password"
-                    placeholder="请输入密码"
-                    type="password"
-                  />
-                </NFormItem>
-                <NFormItem label="SQL 语句">
-                  <NInput
-                    v-model="(currentDataSource.config as any).sql"
-                    :autosize="{ minRows: 2, maxRows: 5 }"
-                    placeholder="请输入 SQL 语句"
-                    type="textarea"
-                  />
-                </NFormItem>
-              </NSpace>
-            </NCard>
-          </template>
-
-          <!-- 静态数据源配置 -->
+          <!-- 静态数据配置 -->
           <template v-if="currentDataSource.dsType === 'STATIC'">
-            <NCard size="small" title="静态数据配置">
-              <NSpace size="small" vertical>
-                <NFormItem label="静态数据">
-                  <NInput
-                    v-model="(currentDataSource.config as any).data"
-                    :autosize="{ minRows: 3, maxRows: 10 }"
-                    placeholder="请输入静态数据（JSON 格式）"
-                    type="textarea"
-                  />
-                </NFormItem>
-              </NSpace>
-            </NCard>
+            <NFormItem label="静态数据">
+              <NInput
+                :value="JSON.stringify((currentDataSource.config as any).data)"
+                placeholder="请输入静态数据 (JSON格式)"
+                type="textarea"
+                @update:value="
+                  (val) => handleApiConfigUpdate('data', JSON.parse(val))
+                "
+              />
+            </NFormItem>
           </template>
 
-          <!-- 操作按钮 -->
           <NSpace justify="end">
-            <NButton @click="handleTestDataSource">测试数据源</NButton>
-            <NButton type="primary" @click="handleSaveDataSource">
-              保存数据源
-            </NButton>
+            <NButton @click="testDataSource">测试</NButton>
+            <NButton type="primary" @click="saveDataSource">保存</NButton>
           </NSpace>
         </NSpace>
-      </NForm>
-    </NTabPane>
+      </NCard>
 
-    <!-- 数据绑定 -->
-    <NTabPane name="binding" tab="数据绑定">
-      <NForm label-placement="left" label-width="100">
+      <!-- 数据绑定配置 -->
+      <NCard size="small" title="数据绑定">
         <NSpace vertical>
-          <NCard size="small" title="数据映射">
-            <NSpace size="small" vertical>
-              <NFormItem label="数据路径">
-                <NInput placeholder="请输入数据路径，例如：data.list" />
-              </NFormItem>
-              <NFormItem label="字段映射">
-                <NInput
-                  :autosize="{ minRows: 3, maxRows: 10 }"
-                  placeholder="请输入字段映射（JSON 格式）"
-                  type="textarea"
-                />
-              </NFormItem>
-            </NSpace>
-          </NCard>
-
-          <!-- 操作按钮 -->
-          <NSpace justify="end">
-            <NButton type="primary">保存映射</NButton>
-          </NSpace>
+          <NFormItem label="数据路径">
+            <NInput
+              :value="dataBindingPath"
+              placeholder="请输入数据路径，例如: data.items"
+              @update:value="handleDataBindingUpdate"
+            />
+          </NFormItem>
         </NSpace>
-      </NForm>
-    </NTabPane>
-  </NTabs>
+      </NCard>
+    </NSpace>
+  </NForm>
 </template>

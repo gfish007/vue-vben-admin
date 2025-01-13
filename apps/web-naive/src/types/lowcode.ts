@@ -224,3 +224,44 @@ export interface DataSource {
   status: DataSourceStatus;
   variables?: Record<string, any>;
 }
+
+/** 页面事件类型 */
+export type PageEventType =
+  | 'onAddToFavorites'
+  | 'onHide'
+  | 'onLoad'
+  | 'onPageScroll'
+  | 'onPullDownRefresh'
+  | 'onReachBottom'
+  | 'onResize'
+  | 'onShareAppMessage'
+  | 'onShareTimeline'
+  | 'onShow'
+  | 'onTabItemTap'
+  | 'onUnload';
+
+/** 事件处理器类型 */
+export type EventHandlerType = 'dataSource' | 'function';
+
+/** 页面事件 */
+export interface PageEvent {
+  type: PageEventType;
+  handlerType?: EventHandlerType;
+  handler: {
+    dsCode?: string;
+    function?: string;
+  };
+}
+
+/** 页面定义 */
+export interface Page {
+  /** 页面编码 */
+  pageCode: string;
+  /** 页面名称 */
+  pageName: string;
+  /** 页面数据源列表 */
+  dataSources: DataSource[];
+  /** 页面事件列表 */
+  events: PageEvent[];
+  components: ComponentInstance[];
+}

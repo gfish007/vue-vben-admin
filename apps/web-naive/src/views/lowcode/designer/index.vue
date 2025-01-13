@@ -1,21 +1,69 @@
 <script setup lang="ts" name="Designer">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 import { EyeOutline, SaveOutline, SendOutline } from '@vicons/ionicons5';
-import { NButton, NIcon, NInput, NSpace } from 'naive-ui';
+import { NButton, NIcon, NInput, NSpace, useMessage } from 'naive-ui';
 
+import { useLowCodeStore } from '../../../store/modules/lowcode';
 import ComponentPanel from './components/ComponentPanel.vue';
 import DesignCanvas from './components/DesignCanvas.vue';
 import PropertyPanel from './components/PropertyPanel.vue';
 
 const router = useRouter();
+const route = useRoute();
+const store = useLowCodeStore();
+const message = useMessage();
 
 const pageName = ref('未命名页面');
 const isEditingName = ref(false);
 
-const handleSave = () => {
-  // TODO: 实现保存逻辑
+// 初始化页面
+const initPage = async () => {
+  try {
+    // 从查询参数中获取 pageCode 和 version
+    const pageCode = route.query.pageCode as string;
+    const version = route.query.version as string;
+    console.log('Loading page:', { pageCode, version });
+
+    if (pageCode && version) {
+      // 如果有参数，加载页面详情
+      await store.loadPageDetail({ pageCode, version });
+      if (store.currentPage) {
+        pageName.value = store.currentPage.pageName;
+      }
+    } else {
+      // 否则初始化一个新页面
+      store.initPage();
+    }
+  } catch (error) {
+    console.error('Failed to init page:', error);
+    message.error(`初始化页面失败：${(error as Error).message}`);
+  }
+};
+
+// 保存页面
+const handleSave = async () => {
+  try {
+    // 更新页面名称
+    if (store.currentPage) {
+      store.updateCurrentPage({
+        ...store.currentPage,
+        pageName: pageName.value,
+      });
+    }
+
+    // 保存页面
+    const result = await store.savePage();
+    if (result) {
+      message.success('保存成功');
+    } else {
+      message.error('保存失败');
+    }
+  } catch (error) {
+    console.error('Failed to save page:', error);
+    message.error(`保存失败：${(error as Error).message}`);
+  }
 };
 
 const handlePreview = () => {
@@ -29,6 +77,11 @@ const handlePublish = () => {
 const handleDataSourceClick = () => {
   router.push('/lowcode/datasource');
 };
+
+// 在组件挂载时初始化页面
+onMounted(() => {
+  initPage();
+});
 </script>
 
 <template>
@@ -37,7 +90,7 @@ const handleDataSourceClick = () => {
       <div class="header-left">
         <template v-if="isEditingName">
           <NInput
-            v-model="pageName"
+            v-model:value="pageName"
             size="small"
             @blur="isEditingName = false"
             @keyup.enter="isEditingName = false"
@@ -75,7 +128,7 @@ const handleDataSourceClick = () => {
             </template>
             发布
           </NButton>
-          <NButton @click="handleDataSourceClick"> 数据源 </NButton>
+          <NButton @click="handleDataSourceClick">数据源</NButton>
         </NSpace>
       </div>
     </div>

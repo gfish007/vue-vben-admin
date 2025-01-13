@@ -12,6 +12,7 @@ export const Span: ComponentDefinition = {
   // 默认属性
   defaultProps: {
     content: '文本内容1', // 显示的文本
+    dataBinding: null, // 数据绑定配置
     type: 'default', // 文本类型
   },
   // 默认样式
@@ -29,6 +30,8 @@ export const Span: ComponentDefinition = {
     padding: '8px',
     width: '100px', // 固定宽度
   },
+  // 组件分组
+  group: 'basic',
   // 组件图标
   icon: 'text',
   // 属性面板配置
@@ -37,8 +40,8 @@ export const Span: ComponentDefinition = {
     customPanels: {
       props: 'SpanProperty', // 使用自定义属性面板
     },
-    // 启用的标签页 'props', 'style', 'data', 'event'
-    enabledTabs: ['props', 'data', 'event'],
+    // 启用的标签页
+    enabledTabs: ['props', 'style', 'data', 'event'],
   },
   // 属性配置面板
   propsSchema: {

@@ -19,6 +19,16 @@ const emit = defineEmits<{
   (e: 'delete', componentId: string): void;
 }>();
 
+// 默认样式配置
+const defaultStyle = {
+  background: 'transparent',
+  border: 'none',
+  height: 'auto',
+  margin: '0',
+  padding: '0',
+  width: '100%',
+};
+
 const store = useLowCodeStore();
 const message = useMessage();
 
@@ -173,23 +183,30 @@ const handleDrop = (event: DragEvent) => {
       const component = JSON.parse(componentData);
       console.log('组件定义:', component);
 
-      // 创建组件实例，确保包含默认样式
+      // 创建组件实例，确保包含所有必要的属性
       const componentInstance: ComponentInstance = {
         componentCode: component.componentCode,
         componentInstanceId: nanoid(),
         componentName: component.componentName,
-        propertyPanel: component.propertyPanel,
-        props: { ...component.defaultProps },
-        propsSchema: component.propsSchema,
-        style: { ...component.defaultStyle }, // 确保应用默认样式
+        dataBinding: component.dataBinding
+          ? structuredClone(component.dataBinding)
+          : undefined,
+        events: component.events
+          ? structuredClone(component.events)
+          : undefined,
+        propertyPanel: component.propertyPanel
+          ? structuredClone(component.propertyPanel)
+          : undefined,
+        props: structuredClone(component.defaultProps || {}),
+        propsSchema: structuredClone(component.propsSchema || {}),
+        style: structuredClone({ ...defaultStyle, ...component.defaultStyle }),
       };
 
       console.log('创建的组件实例:', {
         code: componentInstance.componentCode,
-        defaultProps: component.defaultProps,
-        defaultStyle: component.defaultStyle,
-        finalStyle: componentInstance.style,
         id: componentInstance.componentInstanceId,
+        propertyPanel: componentInstance.propertyPanel,
+        propsSchema: componentInstance.propsSchema,
       });
 
       // 添加到容器中

@@ -1,7 +1,7 @@
 <script setup lang="ts" name="PropertyPanel">
 import type { ComponentInstance } from '../../../../types/lowcode';
 
-import { computed, watch } from 'vue';
+import { computed, markRaw, ref, watch } from 'vue';
 
 import { NEmpty, NTabPane, NTabs } from 'naive-ui';
 
@@ -9,9 +9,9 @@ import { useLowCodeStore } from '../../../../store/modules/lowcode';
 import * as componentRenders from './definitions';
 import DefaultDataPanel from './panels/DefaultDataPanel.vue';
 import DefaultEventPanel from './panels/DefaultEventPanel.vue';
-// 导入默认面板组件
 import DefaultPropsPanel from './panels/DefaultPropsPanel.vue';
 import DefaultStylePanel from './panels/DefaultStylePanel.vue';
+import { components } from './registry';
 
 // 记录可用的组件渲染器
 console.log('[PropertyPanel] 可用的组件渲染器:', Object.keys(componentRenders));
@@ -54,65 +54,116 @@ watch(
 );
 
 // 获取自定义面板组件
-const getPanelComponent = (type: string) => {
-  if (!currentComponent.value) return null;
-
-  const componentCode = currentComponent.value.componentCode;
-  const customPanelName = `${componentCode}${type}Panel`;
-
-  console.log('[PropertyPanel] 获取面板组件:', {
-    availablePanels: Object.keys(componentRenders),
-    componentCode,
-    customPanelName,
-    customPanels: currentComponent.value.propertyPanel?.customPanels,
-    propertyPanel: currentComponent.value.propertyPanel,
-    type,
+const getPanelComponent = async (type: string) => {
+  console.log('Getting panel component for type:', type, {
+    currentComponent: currentComponent.value?.componentCode,
+    propertyPanel: currentComponent.value?.propertyPanel,
   });
 
-  // 尝试从 propertyPanel 配置中获取自定义面板
-  const panelType = type.toLowerCase();
-  const customPanelFromConfig =
-    currentComponent.value.propertyPanel?.customPanels?.[
-      panelType as keyof PropertyPanelConfig['customPanels']
-    ];
+  if (!currentComponent.value) return null;
 
-  if (customPanelFromConfig) {
-    console.log('[PropertyPanel] 找到自定义面板配置:', {
-      availableComponents: Object.keys(componentRenders),
-      customPanelFromConfig,
-      panelType,
-    });
+  // 获取组件定义
+  const componentCode = currentComponent.value.componentCode;
+  console.log('Looking for component definition:', {
+    availableComponents: Object.keys(componentRenders),
+    componentCode,
+  });
 
-    const customPanel =
-      componentRenders[customPanelFromConfig as keyof typeof componentRenders];
-    if (customPanel) {
-      console.log(
-        '[PropertyPanel] 使用配置指定的自定义面板:',
-        customPanelFromConfig,
+  // 尝试从组件实例或组件定义中获取 propertyPanel 配置
+  let propertyPanel = currentComponent.value.propertyPanel;
+  console.log('Initial propertyPanel from instance:', propertyPanel);
+
+  if (!propertyPanel) {
+    // 如果组件实例中没有配置，尝试从组件定义中获取
+    try {
+      // 从 registry 中获取组件定义
+      const componentDef = components.find(
+        (comp) => comp.componentCode === componentCode,
       );
-      return customPanel;
+      console.log('Found component definition:', componentDef);
+
+      if (componentDef) {
+        propertyPanel = componentDef.propertyPanel;
+        console.log('Got propertyPanel from definition:', propertyPanel);
+      } else {
+        console.warn(`Component definition not found for: ${componentCode}`);
+      }
+    } catch (error) {
+      console.warn('Failed to get component definition:', {
+        componentCode,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
-  // 使用默认面板组件
-  console.log('[PropertyPanel] 使用默认面板:', type);
-  switch (type) {
-    case 'Props': {
-      return DefaultPropsPanel;
+  if (propertyPanel?.customPanels) {
+    // 尝试获取自定义面板
+    const customPanelName = propertyPanel.customPanels[type.toLowerCase()];
+    console.log('Custom panel lookup:', {
+      customPanels: propertyPanel.customPanels,
+      foundPanelName: customPanelName,
+      type: type.toLowerCase(),
+    });
+
+    if (customPanelName) {
+      console.log(
+        'Available component renders:',
+        Object.keys(componentRenders),
+      );
+      const customPanel =
+        componentRenders[customPanelName as keyof typeof componentRenders];
+      console.log('Custom panel lookup result:', {
+        found: !!customPanel,
+        name: customPanelName,
+        panel: customPanel,
+      });
+
+      if (customPanel) {
+        console.log('Found custom panel:', customPanelName);
+        return markRaw(customPanel);
+      }
     }
-    case 'Style': {
-      return DefaultStylePanel;
+  }
+
+  // 如果没有找到自定义面板，返回默认面板
+  console.log('Falling back to default panel for type:', type.toLowerCase());
+  switch (type.toLowerCase()) {
+    case 'props': {
+      return markRaw(DefaultPropsPanel);
     }
-    case 'Data': {
-      return DefaultDataPanel;
+    case 'style': {
+      return markRaw(DefaultStylePanel);
     }
-    case 'Event': {
-      return DefaultEventPanel;
+    case 'data': {
+      return markRaw(DefaultDataPanel);
+    }
+    case 'event': {
+      return markRaw(DefaultEventPanel);
     }
     default: {
       return null;
     }
   }
+};
+
+// 缓存面板组件
+const panelComponents = ref<Record<string, any>>({});
+
+// 加载面板组件
+const loadPanelComponent = async (type: string) => {
+  const key = type.toLowerCase();
+  console.log('Loading panel component:', {
+    cached: !!panelComponents.value[key],
+    key,
+    type,
+  });
+
+  if (!panelComponents.value[key]) {
+    const panel = await getPanelComponent(type);
+    console.log('Loaded panel result:', { key, panel: !!panel, type });
+    panelComponents.value[key] = panel;
+  }
+  return panelComponents.value[key];
 };
 
 // 获取启用的标签页
@@ -123,16 +174,40 @@ const enabledTabs = computed(() => {
   const defaultTabs = ['props', 'style'];
   return currentComponent.value.propertyPanel?.enabledTabs || defaultTabs;
 });
+
+// 当前选中的标签页
+const activeTab = ref('props');
+
+// 预加载所有面板组件
+watch(
+  currentComponent,
+  async () => {
+    if (currentComponent.value) {
+      console.log('Component changed, reloading panels:', {
+        componentCode: currentComponent.value.componentCode,
+        enabledTabs: enabledTabs.value,
+      });
+      // 清空缓存
+      panelComponents.value = {};
+      // 预加载所有启用的标签页对应的面板组件
+      for (const tab of enabledTabs.value) {
+        await loadPanelComponent(tab);
+      }
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
   <div class="property-panel">
     <template v-if="currentComponent">
-      <NTabs type="segment">
+      <NTabs v-model:value="activeTab" type="segment">
         <!-- 属性配置 -->
         <NTabPane v-if="enabledTabs.includes('props')" name="props" tab="属性">
           <component
-            :is="getPanelComponent('Props')"
+            :is="panelComponents.props"
+            v-if="panelComponents.props"
             :component="currentComponent"
           />
         </NTabPane>
@@ -140,7 +215,8 @@ const enabledTabs = computed(() => {
         <!-- 样式配置 -->
         <NTabPane v-if="enabledTabs.includes('style')" name="style" tab="样式">
           <component
-            :is="getPanelComponent('Style')"
+            :is="panelComponents.style"
+            v-if="panelComponents.style"
             :component="currentComponent"
           />
         </NTabPane>
@@ -148,7 +224,8 @@ const enabledTabs = computed(() => {
         <!-- 数据配置 -->
         <NTabPane v-if="enabledTabs.includes('data')" name="data" tab="数据">
           <component
-            :is="getPanelComponent('Data')"
+            :is="panelComponents.data"
+            v-if="panelComponents.data"
             :component="currentComponent"
           />
         </NTabPane>
@@ -156,7 +233,8 @@ const enabledTabs = computed(() => {
         <!-- 事件配置 -->
         <NTabPane v-if="enabledTabs.includes('event')" name="event" tab="事件">
           <component
-            :is="getPanelComponent('Event')"
+            :is="panelComponents.event"
+            v-if="panelComponents.event"
             :component="currentComponent"
           />
         </NTabPane>

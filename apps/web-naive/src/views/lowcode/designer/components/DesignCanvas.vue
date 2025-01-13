@@ -1,14 +1,18 @@
 <script setup lang="ts" name="DesignCanvas">
-import type { ComponentInstance } from '../../../../types/lowcode';
+import type {
+  ComponentInstance,
+  DataSource,
+  PageEvent,
+  PageEventType,
+} from '../../../../types/lowcode';
 
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import {
-  EyeOutline,
+  FlashOutline,
   ReloadOutline,
   ReturnUpBackOutline,
-  SaveOutline,
   ServerOutline,
 } from '@vicons/ionicons5';
 import {
@@ -24,6 +28,8 @@ import { nanoid } from 'nanoid';
 import { useLowCodeStore } from '../../../../store/modules/lowcode';
 import ComponentRenderer from './ComponentRenderer.vue';
 import * as componentRenders from './definitions';
+import DataSourcePanel from './panels/DataSourcePanel.vue';
+import EventPanel from './panels/EventPanel.vue';
 
 // 初始化 store
 const store = useLowCodeStore();
@@ -240,6 +246,421 @@ const handleDataSourceClick = () => {
     title: '提示',
   });
 };
+
+// 数据源配置对话框
+const showDataSourceModal = ref(false);
+
+// 页面数据源列表
+const pageDataSources = computed(() => store.currentPage?.dataSources || []);
+
+// 数据源配置
+const currentDataSource = ref<DataSource>({
+  config: {
+    headers: {},
+    method: 'GET',
+    params: {},
+    type: 'API',
+    url: '',
+  },
+  dsCode: '',
+  dsName: '',
+  dsType: 'API',
+  id: '',
+  status: 1,
+});
+
+const isEditingDataSource = ref(false);
+
+// 重置数据源表单
+const resetDataSourceForm = () => {
+  currentDataSource.value = {
+    config: {
+      headers: {},
+      method: 'GET',
+      params: {},
+      type: 'API',
+      url: '',
+    },
+    dsCode: '',
+    dsName: '',
+    dsType: 'API',
+    id: '',
+    status: 1,
+  };
+  isEditingDataSource.value = false;
+};
+
+// 更新数据源配置
+const handleDataSourceUpdate = (field: string, value: unknown) => {
+  currentDataSource.value = {
+    ...currentDataSource.value,
+    [field]: value,
+  };
+};
+
+// 更新数据源API配置
+const handleApiConfigUpdate = (field: string, value: unknown) => {
+  if (currentDataSource.value.config.type === 'API') {
+    currentDataSource.value.config = {
+      ...currentDataSource.value.config,
+      [field]: value,
+    };
+  }
+};
+
+// 更新配置时的处理函数
+const handleConfigChange = (field: string, value: string) => {
+  try {
+    // 如果是空字符串，设置为默认值
+    if (!value.trim()) {
+      if (currentDataSource.value.dsType === 'API') {
+        currentDataSource.value.config[field] = {};
+      } else if (currentDataSource.value.dsType === 'STATIC') {
+        currentDataSource.value.config = {
+          data: {},
+          type: 'STATIC',
+        };
+      }
+      return;
+    }
+
+    // 尝试解析 JSON
+    let parsedValue;
+    try {
+      parsedValue = JSON.parse(value);
+    } catch {
+      // 只在完整的 JSON 格式错误时提示
+      if (value.trim().startsWith('{') && value.trim().endsWith('}')) {
+        message.error('JSON格式错误');
+      }
+      return;
+    }
+
+    if (currentDataSource.value.dsType === 'API') {
+      currentDataSource.value.config = {
+        ...currentDataSource.value.config,
+        [field]: parsedValue,
+      };
+    } else if (currentDataSource.value.dsType === 'STATIC') {
+      currentDataSource.value.config = {
+        data: parsedValue,
+        type: 'STATIC',
+      };
+    }
+  } catch (error) {
+    console.error('handleConfigChange error:', error);
+  }
+};
+
+// 获取默认的静态数据
+const getDefaultStaticData = () => {
+  return JSON.stringify(
+    {
+      code: 200,
+      data: {
+        total: 2,
+        list: [
+          {
+            id: 1,
+            name: '示例数据1',
+          },
+          {
+            id: 2,
+            name: '示例数据2',
+          },
+        ],
+      },
+      message: 'success',
+    },
+    null,
+    2,
+  );
+};
+
+// 监听数据源类型变化
+watch(
+  () => currentDataSource.value.dsType,
+  (newType) => {
+    if (newType === 'STATIC') {
+      // 如果切换到静态数据类型，设置默认的静态数据
+      if (!currentDataSource.value.config.data) {
+        currentDataSource.value.config = {
+          data: JSON.parse(getDefaultStaticData()),
+          type: 'STATIC',
+        };
+      }
+    } else if (newType === 'API') {
+      // 如果切换到 API 类型，设置默认的 API 配置
+      currentDataSource.value.config = {
+        headers: {},
+        method: 'GET',
+        params: {},
+        type: 'API',
+        url: '',
+      };
+    }
+  },
+);
+
+// 验证数据源表单
+const validateDataSourceForm = () => {
+  if (!currentDataSource.value.dsName) {
+    message.error('请输入数据源名称');
+    return false;
+  }
+  if (!currentDataSource.value.dsCode) {
+    message.error('请输入数据源编码');
+    return false;
+  }
+  // 验证编码格式：只允许大写字母、数字和下划线
+  if (!/^[A-Z0-9_]+$/.test(currentDataSource.value.dsCode)) {
+    message.error('数据源编码只能包含大写字母、数字和下划线');
+    return false;
+  }
+
+  // 验证API类型的必填字段
+  if (currentDataSource.value.dsType === 'API') {
+    if (!currentDataSource.value.config.url) {
+      message.error('请输入API地址');
+      return false;
+    }
+    if (!currentDataSource.value.config.method) {
+      message.error('请选择请求方法');
+      return false;
+    }
+  }
+
+  // 验证静态数据类型的必填字段
+  if (
+    currentDataSource.value.dsType === 'STATIC' &&
+    currentDataSource.value.config.data === undefined
+  ) {
+    message.error('请输入静态数据');
+    return false;
+  }
+
+  // 验证数据库类型的必填字段
+  if (currentDataSource.value.dsType === 'DATABASE') {
+    const config = currentDataSource.value.config;
+    if (!config.host) {
+      message.error('请输入主机地址');
+      return false;
+    }
+    if (!config.port) {
+      message.error('请输入端口号');
+      return false;
+    }
+    if (!config.database) {
+      message.error('请输入数据库名');
+      return false;
+    }
+    if (!config.username) {
+      message.error('请输入用户名');
+      return false;
+    }
+    if (!config.password) {
+      message.error('请输入密码');
+      return false;
+    }
+    if (!config.sql) {
+      message.error('请输入SQL语句');
+      return false;
+    }
+  }
+
+  return true;
+};
+
+// 添加数据源
+const handleAddDataSource = () => {
+  if (!validateDataSourceForm()) return;
+
+  if (!store.currentPage) {
+    store.initPage();
+  }
+
+  // 检查编码是否重复
+  if (
+    pageDataSources.value.some(
+      (ds) => ds.dsCode === currentDataSource.value.dsCode,
+    )
+  ) {
+    message.error('数据源编码已存在');
+    return;
+  }
+
+  // 更新页面数据源
+  store.updateCurrentPage({
+    ...store.currentPage!,
+    dataSources: [...pageDataSources.value, currentDataSource.value],
+  });
+
+  message.success('添加数据源成功');
+  showDataSourceFormModal.value = false;
+  resetDataSourceForm();
+};
+
+// 保存数据源
+const handleSaveDataSource = () => {
+  if (!validateDataSourceForm()) return;
+  if (!store.currentPage) return;
+
+  store.updateCurrentPage({
+    ...store.currentPage,
+    dataSources: pageDataSources.value.map((ds) =>
+      ds.dsCode === currentDataSource.value.dsCode
+        ? currentDataSource.value
+        : ds,
+    ),
+  });
+
+  message.success('保存数据源成功');
+  showDataSourceFormModal.value = false;
+  resetDataSourceForm();
+};
+
+// 删除数据源
+const handleDeleteDataSource = (dsCode: string) => {
+  if (!store.currentPage) return;
+
+  store.updateCurrentPage({
+    ...store.currentPage,
+    dataSources: pageDataSources.value.filter((ds) => ds.dsCode !== dsCode),
+  });
+
+  message.success('删除数据源成功');
+};
+
+// 更新数据源
+const handleUpdateDataSource = (dataSource: DataSource) => {
+  if (!store.currentPage) return;
+
+  store.updateCurrentPage({
+    ...store.currentPage,
+    dataSources: pageDataSources.value.map((ds) =>
+      ds.dsCode === dataSource.dsCode ? dataSource : ds,
+    ),
+  });
+
+  message.success('更新数据源成功');
+};
+
+// 页面事件配置对话框
+const showEventModal = ref(false);
+
+// 页面事件列表
+const pageEvents = computed(() => store.currentPage?.events || []);
+
+// 事件类型选项
+const eventTypeOptions = [
+  { label: '页面加载', value: 'onLoad' },
+  { label: '页面卸载', value: 'onUnload' },
+  { label: '页面显示', value: 'onShow' },
+  { label: '页面隐藏', value: 'onHide' },
+];
+
+// 添加页面事件
+const handleAddEvent = (event: PageEvent) => {
+  if (!store.currentPage) {
+    store.initPage();
+  }
+
+  // 检查事件类型是否重复
+  if (pageEvents.value.some((e) => e.type === event.type)) {
+    message.error('该事件类型已存在');
+    return;
+  }
+
+  store.updateCurrentPage({
+    ...store.currentPage!,
+    events: [...pageEvents.value, event],
+  });
+
+  message.success('添加事件成功');
+};
+
+// 删除页面事件
+const handleDeleteEvent = (type: PageEventType) => {
+  if (!store.currentPage) return;
+
+  store.updateCurrentPage({
+    ...store.currentPage,
+    events: pageEvents.value.filter((e) => e.type !== type),
+  });
+
+  message.success('删除事件成功');
+};
+
+// 更新页面事件
+const handleUpdateEvent = (event: PageEvent) => {
+  if (!store.currentPage) return;
+
+  store.updateCurrentPage({
+    ...store.currentPage,
+    events: pageEvents.value.map((e) => (e.type === event.type ? event : e)),
+  });
+
+  message.success('更新事件成功');
+};
+
+// 编辑数据源
+const handleEditDataSource = (ds: DataSource) => {
+  currentDataSource.value = { ...ds };
+  isEditingDataSource.value = true;
+};
+
+// 数据源表单对话框
+const showDataSourceFormModal = ref(false);
+
+// 事件表单对话框
+const showEventFormModal = ref(false);
+
+// 事件表单
+const currentEvent = ref<PageEvent>({ handler: {}, type: 'onLoad' });
+
+// 初始化页面
+onMounted(() => {
+  if (!store.currentPage) {
+    store.initPage();
+  }
+});
+
+// 重置事件表单
+const resetEventForm = () => {
+  currentEvent.value = { handler: {}, type: 'onLoad' };
+  showEventFormModal.value = false;
+};
+
+// 验证事件表单
+const validateEventForm = () => {
+  if (!currentEvent.value.type) {
+    message.error('请选择事件类型');
+    return false;
+  }
+
+  if (!currentEvent.value.handlerType) {
+    message.error('请选择处理器类型');
+    return false;
+  }
+
+  if (
+    currentEvent.value.handlerType === 'dataSource' &&
+    !currentEvent.value.handler.dsCode
+  ) {
+    message.error('请选择数据源');
+    return false;
+  }
+
+  if (
+    currentEvent.value.handlerType === 'function' &&
+    !currentEvent.value.handler.function
+  ) {
+    message.error('请输入自定义函数');
+    return false;
+  }
+
+  return true;
+};
 </script>
 
 <template>
@@ -258,21 +679,33 @@ const handleDataSourceClick = () => {
         <NButton circle quaternary size="small" title="撤销" type="default">
           <NIcon><ReturnUpBackOutline /></NIcon>
         </NButton>
-        <NButton circle quaternary size="small" title="保存" type="primary">
-          <NIcon><SaveOutline /></NIcon>
-        </NButton>
-        <NButton circle quaternary size="small" title="预览" type="info">
-          <NIcon><EyeOutline /></NIcon>
+        <NButton
+          circle
+          quaternary
+          size="small"
+          title="页面数据源配置"
+          type="warning"
+          @click="
+            () => {
+              showDataSourceModal = true;
+            }
+          "
+        >
+          <NIcon><ServerOutline /></NIcon>
         </NButton>
         <NButton
           circle
           quaternary
           size="small"
-          title="数据源"
-          type="warning"
-          @click="handleDataSourceClick"
+          title="页面事件配置"
+          type="info"
+          @click="
+            () => {
+              showEventModal = true;
+            }
+          "
         >
-          <NIcon><ServerOutline /></NIcon>
+          <NIcon><FlashOutline /></NIcon>
         </NButton>
       </NSpace>
     </div>
@@ -298,6 +731,12 @@ const handleDataSourceClick = () => {
         </div>
       </div>
     </div>
+
+    <!-- 数据源配置对话框 -->
+    <DataSourcePanel v-model:show="showDataSourceModal" />
+
+    <!-- 事件配置对话框 -->
+    <EventPanel v-model:show="showEventModal" />
   </div>
 </template>
 

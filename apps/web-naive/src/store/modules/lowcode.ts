@@ -1,5 +1,12 @@
 import type { DataSourceApi } from '../../api/lowcode/dataSource.types';
-import type { ComponentInstance, DataSource } from '../../types/lowcode';
+import type { PageApi } from '../../api/lowcode/page.types';
+import type {
+  ComponentInstance,
+  DataSource,
+  Page,
+  PageEvent,
+  PageEventType,
+} from '../../types/lowcode';
 
 import { nanoid } from 'nanoid';
 import { defineStore } from 'pinia';
@@ -10,6 +17,8 @@ import {
   queryDataSourceList,
   saveOrUpdateDataSource,
 } from '../../api/lowcode/dataSource';
+import { getPageDetail, saveOrUpdatePage } from '../../api/lowcode/page';
+import { PageStatus } from '../../api/lowcode/page.types';
 
 // 定义状态接口
 interface LowCodeState {
@@ -25,6 +34,7 @@ interface LowCodeState {
     size: number;
     total: number;
   };
+  currentPage: null | Page;
 }
 
 export const useLowCodeStore = defineStore('lowcode', {
@@ -72,23 +82,113 @@ export const useLowCodeStore = defineStore('lowcode', {
       return added;
     },
 
-    async addDataSource(dataSource: Omit<DataSource, 'id'>) {
+    async addDataSource(dataSource: DataSource) {
       try {
-        const res = await saveOrUpdateDataSource(dataSource);
-        if (res.data) {
-          await this.loadDataSources({
-            page: {
-              current: this.dataSourcePagination.current,
-              size: this.dataSourcePagination.size,
-            },
-            queryBody: {},
-          });
+        if (!this.currentPage) {
+          this.initPage();
         }
+
+        // 检查数据源编码是否重复
+        if (
+          this.currentPage!.dataSources.some(
+            (ds) => ds.dsCode === dataSource.dsCode,
+          )
+        ) {
+          throw new Error('该数据源编码已存在');
+        }
+
+        // 保存到后端
+        const res = await saveOrUpdateDataSource(dataSource);
+        if (!res.data) {
+          throw new Error('保存数据源失败：服务器返回数据为空');
+        }
+
+        // 更新页面数据源列表
+        const updatedDataSources = [...this.currentPage!.dataSources, res.data];
+
+        // 更新页面配置
+        this.updateCurrentPage({
+          ...this.currentPage!,
+          dataSources: updatedDataSources,
+        });
+
+        // 刷新数据源列表
+        await this.loadDataSources({
+          page: {
+            current: this.dataSourcePagination.current,
+            size: this.dataSourcePagination.size,
+          },
+          queryBody: {},
+        });
+
         return res.data;
       } catch (error) {
         console.error('Failed to add data source:', error);
         throw error;
       }
+    },
+
+    // 添加事件
+    addEvent(event: PageEvent) {
+      if (!this.currentPage) {
+        this.initPage();
+      }
+
+      // 检查事件类型是否重复
+      if (this.currentPage.events.some((e) => e.type === event.type)) {
+        throw new Error('该事件类型已存在');
+      }
+
+      // 更新页面事件列表
+      const updatedEvents = [...this.currentPage.events, event];
+
+      // 更新页面配置
+      this.updateCurrentPage({
+        ...this.currentPage,
+        events: updatedEvents,
+      });
+
+      return true;
+    },
+
+    // 删除数据源
+    deleteDataSource(dsCode: string) {
+      if (!this.currentPage) {
+        return false;
+      }
+
+      // 更新页面数据源列表
+      const updatedDataSources = this.currentPage.dataSources.filter(
+        (ds) => ds.dsCode !== dsCode,
+      );
+
+      // 更新页面配置
+      this.updateCurrentPage({
+        ...this.currentPage,
+        dataSources: updatedDataSources,
+      });
+
+      return true;
+    },
+
+    // 删除事件
+    deleteEvent(eventType: PageEventType) {
+      if (!this.currentPage) {
+        return false;
+      }
+
+      // 更新页面事件列表
+      const updatedEvents = this.currentPage.events.filter(
+        (e) => e.type !== eventType,
+      );
+
+      // 更新页面配置
+      this.updateCurrentPage({
+        ...this.currentPage,
+        events: updatedEvents,
+      });
+
+      return true;
     },
 
     // 查找组件及其父组件
@@ -128,6 +228,17 @@ export const useLowCodeStore = defineStore('lowcode', {
       }
     },
 
+    // 初始化页面
+    initPage() {
+      this.currentPage = {
+        components: [],
+        dataSources: [],
+        events: [],
+        pageCode: `PAGE_${nanoid(6)}`,
+        pageName: '新页面',
+      };
+    },
+
     // 数据源相关方法
     async loadDataSources(params: DataSourceApi.QueryParams) {
       try {
@@ -137,6 +248,33 @@ export const useLowCodeStore = defineStore('lowcode', {
         this.dataSourcePagination.total = data.total;
       } catch (error) {
         console.error('Failed to load data sources:', error);
+        throw error;
+      }
+    },
+
+    // 加载页面详情
+    async loadPageDetail(params: { pageCode: string; version: string }) {
+      try {
+        const data = await getPageDetail(params);
+        if (!data) {
+          throw new Error('获取页面详情失败：服务器未返回数据');
+        }
+
+        // 更新组件列表
+        this.components = data.components || [];
+
+        // 更新当前页面
+        this.updateCurrentPage({
+          components: data.components || [],
+          dataSources: data.dataSources || [],
+          events: data.events || [],
+          pageCode: data.pageCode,
+          pageName: data.pageName,
+        });
+
+        return data;
+      } catch (error) {
+        console.error('Failed to load page detail:', error);
         throw error;
       }
     },
@@ -221,6 +359,55 @@ export const useLowCodeStore = defineStore('lowcode', {
       }
     },
 
+    // 删除事件
+    removeEvent(type: PageEventType) {
+      if (!this.currentPage) {
+        return false;
+      }
+
+      // 更新页面事件列表
+      const updatedEvents = this.currentPage.events.filter(
+        (e) => e.type !== type,
+      );
+
+      // 更新页面配置
+      this.updateCurrentPage({
+        ...this.currentPage,
+        events: updatedEvents,
+      });
+
+      return true;
+    },
+
+    // 保存页面
+    async savePage() {
+      if (!this.currentPage) {
+        throw new Error('当前页面不存在');
+      }
+
+      try {
+        const pageData: Omit<PageApi.QueryResult, 'id'> = {
+          components: this.components,
+          dataSources: this.currentPage.dataSources,
+          events: this.currentPage.events,
+          pageCode: this.currentPage.pageCode,
+          pageName: this.currentPage.pageName,
+          status: PageStatus.DRAFT,
+          version: '1.0.0',
+        };
+
+        console.log('Saving page data:', pageData);
+        const data = await saveOrUpdatePage(pageData);
+        if (!data) {
+          throw new Error('保存页面失败：服务器返回数据为空');
+        }
+        return data;
+      } catch (error) {
+        console.error('Failed to save page:', error);
+        throw error;
+      }
+    },
+
     // 设置当前选中的组件
     setCurrentComponentId(id: string) {
       this.currentComponentId = id;
@@ -237,23 +424,50 @@ export const useLowCodeStore = defineStore('lowcode', {
       return false;
     },
 
-    async updateDataSource(id: string, dataSource: DataSource) {
-      try {
-        const res = await saveOrUpdateDataSource({ ...dataSource, id });
-        if (res.data) {
-          await this.loadDataSources({
-            page: {
-              current: this.dataSourcePagination.current,
-              size: this.dataSourcePagination.size,
-            },
-            queryBody: {},
-          });
-        }
-        return res.data;
-      } catch (error) {
-        console.error('Failed to update data source:', error);
-        throw error;
+    // 更新当前页面
+    updateCurrentPage(page: Page) {
+      console.log('更新页面配置:', page);
+      this.currentPage = page;
+    },
+
+    // 更新数据源
+    updateDataSource(dataSource: DataSource) {
+      if (!this.currentPage) {
+        return false;
       }
+
+      // 更新页面数据源列表
+      const updatedDataSources = this.currentPage.dataSources.map((ds) =>
+        ds.dsCode === dataSource.dsCode ? dataSource : ds,
+      );
+
+      // 更新页面配置
+      this.updateCurrentPage({
+        ...this.currentPage,
+        dataSources: updatedDataSources,
+      });
+
+      return true;
+    },
+
+    // 更新事件
+    updateEvent(event: PageEvent) {
+      if (!this.currentPage) {
+        return false;
+      }
+
+      // 更新页面事件列表
+      const updatedEvents = this.currentPage.events.map((e) =>
+        e.type === event.type ? event : e,
+      );
+
+      // 更新页面配置
+      this.updateCurrentPage({
+        ...this.currentPage,
+        events: updatedEvents,
+      });
+
+      return true;
     },
   },
 
@@ -271,6 +485,7 @@ export const useLowCodeStore = defineStore('lowcode', {
   state: (): LowCodeState => ({
     components: [],
     currentComponentId: null,
+    currentPage: null as null | Page,
     dataSourcePagination: {
       current: 1,
       size: 10,
