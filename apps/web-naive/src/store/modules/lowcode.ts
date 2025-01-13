@@ -19,6 +19,7 @@ import {
 } from '../../api/lowcode/dataSource';
 import { getPageDetail, saveOrUpdatePage } from '../../api/lowcode/page';
 import { PageStatus } from '../../api/lowcode/page.types';
+import { components } from '../../views/lowcode/designer/components/registry';
 
 // 定义状态接口
 interface LowCodeState {
@@ -45,6 +46,9 @@ export const useLowCodeStore = defineStore('lowcode', {
       if (!component.componentInstanceId) {
         component.componentInstanceId = nanoid();
       }
+
+      // 合并组件配置
+      this.mergeComponentConfig(component);
 
       if (!parentId) {
         // 添加到根级别
@@ -257,25 +261,42 @@ export const useLowCodeStore = defineStore('lowcode', {
       try {
         const data = await getPageDetail(params);
         if (!data) {
-          throw new Error('获取页面详情失败：服务器未返回数据');
+          throw new Error('页面数据为空');
         }
 
-        // 更新组件列表
-        this.components = data.components || [];
+        // 处理组件配置
+        if (data.components) {
+          data.components.forEach((comp) => this.mergeComponentConfig(comp));
+        }
 
         // 更新当前页面
-        this.updateCurrentPage({
-          components: data.components || [],
-          dataSources: data.dataSources || [],
-          events: data.events || [],
-          pageCode: data.pageCode,
-          pageName: data.pageName,
-        });
-
+        this.currentPage = data;
+        this.components = data.components || [];
         return data;
       } catch (error) {
-        console.error('Failed to load page detail:', error);
+        console.error('Failed to load page:', error);
         throw error;
+      }
+    },
+
+    // 合并组件配置
+    mergeComponentConfig(component: ComponentInstance) {
+      // 从组件注册表中获取组件定义
+      const componentDef = components.find(
+        (comp) => comp.componentCode === component.componentCode,
+      );
+
+      if (componentDef) {
+        // 合并属性面板配置
+        component.propertyPanel = {
+          ...componentDef.propertyPanel,
+          ...component.propertyPanel,
+        };
+      }
+
+      // 递归处理子组件
+      if (component.children) {
+        component.children.forEach(this.mergeComponentConfig);
       }
     },
 
@@ -485,7 +506,7 @@ export const useLowCodeStore = defineStore('lowcode', {
   state: (): LowCodeState => ({
     components: [],
     currentComponentId: null,
-    currentPage: null as null | Page,
+    currentPage: null,
     dataSourcePagination: {
       current: 1,
       size: 10,
