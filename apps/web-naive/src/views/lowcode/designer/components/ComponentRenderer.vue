@@ -1,7 +1,7 @@
-<script setup lang="ts">
+<script setup lang="ts" name="ComponentRenderer">
 import type { ComponentInstance } from '../../../../types/lowcode';
 
-import { computed, markRaw, ref } from 'vue';
+import { computed, markRaw, ref, watchEffect } from 'vue';
 
 import { CloseCircle } from '@vicons/ionicons5';
 import { NIcon, useMessage } from 'naive-ui';
@@ -10,10 +10,19 @@ import { nanoid } from 'nanoid';
 import { useLowCodeStore } from '../../../../store/modules/lowcode';
 import * as componentRenders from './definitions';
 
-const props = defineProps<{
-  isPreview?: boolean;
-  node: ComponentInstance;
-}>();
+defineOptions({
+  name: 'ComponentRenderer',
+});
+
+const props = withDefaults(
+  defineProps<{
+    isPreview?: boolean;
+    node: ComponentInstance;
+  }>(),
+  {
+    isPreview: false,
+  },
+);
 
 const emit = defineEmits<{
   (e: 'delete', componentId: string): void;
@@ -102,7 +111,6 @@ const handleDragStart = (event: DragEvent) => {
     componentId: props.node.componentInstanceId,
     type: 'move',
   };
-  console.log('开始拖拽组件:', data);
   event.dataTransfer?.setData('component-drag', JSON.stringify(data));
 };
 
@@ -115,7 +123,6 @@ const handleDragEnter = (event: DragEvent) => {
   // 只有容器组件才显示拖拽效果
   const el = event.currentTarget as HTMLElement;
   if (props.node.componentCode === 'Container') {
-    console.log('拖拽进入容器:', props.node.componentInstanceId);
     el.classList.add('drag-over');
   }
 };
@@ -131,7 +138,6 @@ const handleDragLeave = (event: DragEvent) => {
 
   // 只有当真正离开容器区域时才移除效果
   if (!target.contains(relatedTarget)) {
-    console.log('拖拽离开容器:', props.node.componentInstanceId);
     target.classList.remove('drag-over');
   }
 };
@@ -156,78 +162,49 @@ const handleDrop = (event: DragEvent) => {
     try {
       const data = JSON.parse(dragData);
       if (data.type === 'move') {
-        console.log('正在移动组件:', data);
         const success = store.moveComponent(
           data.componentId,
           props.node.componentInstanceId,
         );
         if (success) {
-          console.log(
-            '移动组件成功，目标容器:',
-            props.node.componentInstanceId,
-          );
           message.success('移动到容器成功');
         } else {
-          console.warn('移动组件失败');
           message.error('移动组件失败');
         }
       }
-    } catch (error) {
-      console.error('解析拖拽数据失败:', error);
+    } catch {
       message.error('解析组件数据失败');
     }
   } else if (componentData) {
     // 处理新组件添加
     try {
-      console.log('正在解析组件数据:', componentData);
       const component = JSON.parse(componentData);
-      console.log('组件定义:', component);
 
       // 创建组件实例，确保包含所有必要的属性
       const componentInstance: ComponentInstance = {
         componentCode: component.componentCode,
         componentInstanceId: nanoid(),
-        componentName: component.componentName,
         dataBinding: component.dataBinding
           ? structuredClone(component.dataBinding)
           : undefined,
         events: component.events
           ? structuredClone(component.events)
           : undefined,
-        propertyPanel: component.propertyPanel
-          ? structuredClone(component.propertyPanel)
-          : undefined,
         props: structuredClone(component.defaultProps || {}),
-        propsSchema: structuredClone(component.propsSchema || {}),
         style: structuredClone({ ...defaultStyle, ...component.defaultStyle }),
       };
 
-      console.log('创建的组件实例:', {
-        code: componentInstance.componentCode,
-        id: componentInstance.componentInstanceId,
-        propertyPanel: componentInstance.propertyPanel,
-        propsSchema: componentInstance.propsSchema,
-      });
-
-      // 添加到容器中
       const success = store.addComponent(
         componentInstance,
         props.node.componentInstanceId,
       );
 
       if (success) {
-        console.log('添加组件成功:', {
-          componentId: componentInstance.componentInstanceId,
-          parentId: props.node.componentInstanceId,
-          style: componentInstance.style,
-        });
         message.success('添加到容器成功');
       } else {
-        console.warn('添加组件失败');
         message.error('添加组件失败');
       }
-    } catch (error) {
-      console.error('解析组件数据失败:', error);
+    } catch {
       message.error('解析组件数据失败');
     }
   }
@@ -244,14 +221,30 @@ const handleMouseEnter = () => {
 const handleMouseLeave = () => {
   isHovered.value = false;
 };
+
+// Add watchEffect to track isPreview
+watchEffect(() => {
+  console.log('【ComponentRenderer】isPreview状态:', {
+    isPreview: props.isPreview,
+    组件ID: props.node?.componentInstanceId,
+    组件类型: props.node?.componentCode,
+  });
+});
+</script>
+
+<script lang="ts">
+export default {
+  name: 'ComponentRenderer',
+};
 </script>
 
 <template>
   <div
     :class="[
-      { 'is-selected': isSelected && !isPreview },
-      { 'is-container': node.componentCode === 'Container' },
+      { 'is-selected': isSelected && !props.isPreview },
+      { 'is-container': props.node.componentCode === 'Container' },
     ]"
+    :data-preview="props.isPreview"
     :style="wrapperStyle"
     class="component-wrapper"
     draggable="true"
@@ -268,16 +261,18 @@ const handleMouseLeave = () => {
       <component
         :is="componentRender"
         v-if="componentRender"
-        v-bind="node.props"
-        :is-preview="isPreview"
-        :node="node"
+        v-bind="{
+          ...props.node.props,
+          isPreview: props.isPreview,
+          node: props.node,
+        }"
       >
-        <template v-if="node.componentCode === 'Container'">
+        <template v-if="props.node.componentCode === 'Container'">
           <div class="container-children">
             <component-renderer
-              v-for="child in node.children || []"
+              v-for="child in props.node.children || []"
               :key="child.componentInstanceId"
-              :is-preview="isPreview"
+              :is-preview="props.isPreview"
               :node="child"
               @delete="$emit('delete', $event)"
             />
@@ -286,7 +281,7 @@ const handleMouseLeave = () => {
       </component>
     </div>
     <div
-      v-show="(isSelected || isHovered) && !isPreview"
+      v-show="(isSelected || isHovered) && !props.isPreview"
       class="delete-button"
       @click.stop="emit('delete', props.node.componentInstanceId)"
     >
@@ -305,13 +300,13 @@ const handleMouseLeave = () => {
   width: 100%;
   z-index: 1;
 
-  &.is-selected {
+  &.is-selected:not([data-preview='true']) {
     outline: 2px dashed #18a058;
     outline-offset: -1px;
     z-index: 2;
   }
 
-  &:hover {
+  &:not([data-preview='true']):hover {
     &:not(.is-selected):not(:has(.component-wrapper:hover)) {
       outline: 1px dashed #18a05880;
       outline-offset: -1px;
@@ -329,7 +324,7 @@ const handleMouseLeave = () => {
     flex-direction: column;
     min-height: 120px;
 
-    &.drag-over {
+    &.drag-over:not([data-preview='true']) {
       background-color: rgba(24, 160, 88, 0.05);
       outline: 2px dashed #18a058;
       outline-offset: -1px;

@@ -46,14 +46,20 @@
     "@vueuse/core": "catalog:",
     "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-vue": "^5.1.12",
+    "highlight.js": "^11.11.1",
     "hls.js": "^1.5.18",
+    "monaco-editor": "^0.52.2",
     "naive-ui": "catalog:",
     "pinia": "catalog:",
     "video.js": "^8.21.0",
     "vue": "catalog:",
     "vue-draggable-next": "^2.2.1",
+    "vue-json-pretty": "^2.4.0",
     "vue-router": "catalog:",
     "xgplayer": "^3.0.20",
     "xgplayer-hls.js": "^3.0.20"
+  },
+  "devDependencies": {
+    "vite-plugin-monaco-editor": "^1.1.0"
   }
 }

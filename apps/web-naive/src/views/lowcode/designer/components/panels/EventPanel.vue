@@ -1,7 +1,7 @@
 <script setup lang="ts" name="EventPanel">
 import type { PageEvent, PageEventType } from '../../../../../types/lowcode';
 
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import {
   NButton,
@@ -12,6 +12,8 @@ import {
   NList,
   NListItem,
   NModal,
+  NRadio,
+  NRadioGroup,
   NSelect,
   NSpace,
   NTag,
@@ -31,6 +33,39 @@ const emit = defineEmits<{
 // 初始化 store
 const store = useLowCodeStore();
 const message = useMessage();
+
+// 加载全局数据源
+onMounted(async () => {
+  try {
+    await store.loadGlobalDataSources();
+  } catch (error) {
+    console.error('Failed to load global data sources:', error);
+    message.error('加载全局数据源失败');
+  }
+});
+
+// 全局数据源列表
+const globalDataSources = computed(() => store.globalDataSources || []);
+
+// 页面数据源列表
+const pageDataSources = computed(() => store.currentPage?.dataSources || []);
+
+// 数据源范围
+const sourceScope = ref<'GLOBAL' | 'PAGE'>('PAGE');
+
+// 获取数据源选项
+const dataSourceOptions = computed(() => {
+  if (sourceScope.value === 'GLOBAL') {
+    return globalDataSources.value.map((ds) => ({
+      label: ds.dsName,
+      value: ds.dsCode,
+    }));
+  }
+  return pageDataSources.value.map((ds) => ({
+    label: ds.dsName,
+    value: ds.dsCode,
+  }));
+});
 
 // 事件表单对话框
 const showEventFormModal = ref(false);
@@ -158,15 +193,6 @@ const getEventTypeLabel = (type: PageEventType) => {
   const option = eventTypeOptions.find((opt) => opt.value === type);
   return option ? option.label : type;
 };
-
-// 获取数据源选项
-const dataSourceOptions = computed(() => {
-  const sources = store.currentPage?.dataSources || [];
-  return sources.map((ds) => ({
-    label: ds.dsName,
-    value: ds.dsCode,
-  }));
-});
 </script>
 
 <template>
@@ -272,11 +298,19 @@ const dataSourceOptions = computed(() => {
       </NFormItem>
 
       <template v-if="currentEvent.handlerType === 'dataSource'">
+        <NFormItem label="数据源范围">
+          <NRadioGroup v-model:value="sourceScope">
+            <NRadio value="GLOBAL">全局数据源</NRadio>
+            <NRadio value="PAGE">页面数据源</NRadio>
+          </NRadioGroup>
+        </NFormItem>
         <NFormItem label="数据源" required>
           <NSelect
             v-model:value="currentEvent.handler.dsCode"
             :options="dataSourceOptions"
-            placeholder="请选择数据源"
+            :placeholder="
+              sourceScope === 'GLOBAL' ? '请选择全局数据源' : '请选择页面数据源'
+            "
           />
         </NFormItem>
       </template>

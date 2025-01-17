@@ -1,4 +1,6 @@
-import { h } from 'vue';
+import type { ComponentInstance } from '../../../../../types/lowcode';
+
+import { h, ref, watchEffect } from 'vue';
 
 import { useLowCodeStore } from '../../../../../store/modules/lowcode';
 
@@ -6,72 +8,122 @@ import { useLowCodeStore } from '../../../../../store/modules/lowcode';
  * 文本组件渲染函数
  * @param props 组件属性，包含 node 属性
  */
-export const SpanRender = (props: any) => {
+export const SpanRender = (props: {
+  isPreview?: boolean;
+  node: ComponentInstance;
+}) => {
   const store = useLowCodeStore();
+  const content = ref(props.node?.props?.content || '文本内容');
+  const isPreview = props.isPreview ?? false;
 
-  // 从 node 中获取属性和样式
-  const node = props.node;
-  const style = node?.style || {};
-  const type = node?.props?.type || 'default';
-
-  // 获取显示内容
-  let content = node?.props?.content || '文本内容';
+  console.log('【Span渲染】isPreview状态:', {
+    isPreview,
+    组件ID: props.node?.componentInstanceId,
+    组件类型: props.node?.componentCode,
+  });
 
   // 处理数据绑定
-  const dataBinding = node?.props?.dataBinding;
-  if (dataBinding) {
-    console.log('处理数据绑定:', {
-      binding: dataBinding,
-      isPreview: props.isPreview,
+  watchEffect(async () => {
+    const dataBinding = props.node?.dataBinding;
+    console.log('【Span渲染】数据绑定信息:', {
+      数据绑定: dataBinding,
+      是否预览: isPreview,
+      组件ID: props.node?.componentInstanceId,
     });
 
-    // 获取数据源
-    let dataSource = node.dataSource; // 组件自身的数据源
+    if (dataBinding && dataBinding.dsCode) {
+      try {
+        // 获取数据源
+        const dataSource = store.currentPage?.dataSources?.find(
+          (ds) => ds.dsCode === dataBinding.dsCode,
+        );
 
-    // 如果使用的是页面数据源，从页面配置中获取
-    if (dataBinding.sourceCode && !dataSource) {
-      dataSource = store.currentPage?.dataSources?.find(
-        (ds) => ds.dsCode === dataBinding.sourceCode,
-      );
-    }
+        console.log('【Span渲染】找到数据源:', {
+          数据源信息: dataSource,
+          数据源类型: dataSource?.dsType,
+          数据源编码: dataBinding.dsCode,
+        });
 
-    if (dataSource) {
-      console.log('找到数据源:', dataSource);
+        if (dataSource) {
+          let dsData;
 
-      // 如果是静态数据源
-      if (dataSource.dsType === 'STATIC') {
-        try {
-          // 解析数据路径
-          const path = dataBinding.path.split('.');
-          let data = (dataSource.config as any).data;
+          // 在预览模式下，优先从缓存获取数据
+          if (isPreview) {
+            dsData = store.componentDataCache.get(dataBinding.dsCode);
+            console.log('【Span渲染】预览模式 - 缓存数据:', {
+              数据源编码: dataBinding.dsCode,
+              缓存数据: dsData,
+            });
+          }
 
-          // 遍历路径获取数据
-          for (const key of path) {
-            if (data && typeof data === 'object') {
-              data = data[key];
+          // 如果没有缓存数据，则根据数据源类型获取数据
+          if (!dsData) {
+            if (dataSource.dsType === 'STATIC') {
+              // 如果是静态数据源，直接使用 config.data
+              dsData =
+                typeof dataSource.config.data === 'string'
+                  ? JSON.parse(dataSource.config.data || '{}')
+                  : dataSource.config.data;
+              console.log('【Span渲染】静态数据源数据:', dsData);
             } else {
-              data = undefined;
-              break;
+              // 其他类型的数据源
+              console.log('【Span渲染】获取动态数据源数据');
+              dsData = await store.getDataSourceData(dataBinding.dsCode);
+              // 更新缓存
+              if (dsData && isPreview) {
+                store.componentDataCache.set(dataBinding.dsCode, dsData);
+              }
             }
           }
 
-          // 如果找到数据，更新内容
-          if (data !== undefined) {
-            content = String(data);
-            console.log('数据绑定成功:', { content, data });
-          }
-        } catch (error) {
-          console.error('数据绑定错误:', error);
-        }
-      }
+          if (dsData) {
+            // 移除类型信息 (string) 等，并解析数据路径
+            const cleanPath = dataBinding.path.replace(/\s*\([^)]*\)\s*$/, '');
+            console.log('【Span渲染】数据路径处理:', {
+              原始路径: dataBinding.path,
+              处理后路径: cleanPath,
+            });
 
-      // 如果是API数据源，并且是预览模式
-      if (dataSource.dsType === 'API' && props.isPreview) {
-        // TODO: 实现API数据源的数据获取和绑定
-        console.log('API数据源预览:', dataSource);
+            const path = cleanPath.split('.');
+            let value = dsData;
+
+            // 遍历路径获取数据
+            for (const key of path) {
+              if (value && typeof value === 'object') {
+                value = value[key];
+                console.log(`【Span渲染】访问路径 ${key}:`, value);
+              } else {
+                value = undefined;
+                console.log(`【Span渲染】路径 ${key} 访问失败`);
+                break;
+              }
+            }
+
+            // 如果找到数据，更新内容
+            if (value === undefined) {
+              console.log('【Span渲染】未找到数据，使用默认内容');
+            } else {
+              content.value = String(value);
+              console.log('【Span渲染】数据绑定成功:', {
+                原始值: value,
+                最终内容: content.value,
+              });
+            }
+          } else {
+            console.log('【Span渲染】未获取到数据源数据');
+          }
+        } else {
+          console.log('【Span渲染】未找到对应的数据源');
+        }
+      } catch (error) {
+        console.error('【Span渲染】数据绑定错误:', error);
       }
+    } else {
+      // 如果没有数据绑定，使用静态内容
+      console.log('【Span渲染】使用静态内容:', props.node?.props?.content);
+      content.value = props.node?.props?.content || '文本内容';
     }
-  }
+  });
 
   // 根据类型设置颜色
   const typeColorMap = {
@@ -84,39 +136,45 @@ export const SpanRender = (props: any) => {
 
   // 提取非布局相关的样式
   const {
-    alignItems,
-    bottom,
-    display,
-    flexDirection,
-    flexWrap,
-    gap,
-    height,
-    justifyContent,
-    left,
-    margin,
-    maxHeight,
-    maxWidth,
-    minHeight,
-    minWidth,
-    position,
-    right,
-    top,
-    width,
+    alignItems: _alignItems,
+    // 移除默认的边框样式
+    // border: _border,
+    bottom: _bottom,
+    display: _display,
+    flexDirection: _flexDirection,
+    flexWrap: _flexWrap,
+    gap: _gap,
+    height: _height,
+    justifyContent: _justifyContent,
+    left: _left,
+    margin: _margin,
+    maxHeight: _maxHeight,
+    maxWidth: _maxWidth,
+    minHeight: _minHeight,
+    minWidth: _minWidth,
+    position: _position,
+    right: _right,
+    top: _top,
+    width: _width,
     ...otherStyles
-  } = style;
+  } = props.node?.style || {};
 
   // 合并样式，只使用非布局相关的样式
   const finalStyle = {
     ...otherStyles,
+    // 只在非预览模式下显示虚线框
+    border: isPreview ? 'none' : '1px dashed rgb(232, 232, 232)',
     color:
-      typeColorMap[type as keyof typeof typeColorMap] || typeColorMap.default,
+      typeColorMap[props.node?.props?.type as keyof typeof typeColorMap] ||
+      typeColorMap.default,
   };
 
   return h(
     'div',
     {
+      'data-preview': isPreview,
       style: finalStyle,
     },
-    content,
+    content.value,
   );
 };

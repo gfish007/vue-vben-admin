@@ -1,10 +1,12 @@
 import { defineConfig } from '@vben/vite-config';
+
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
 
 export default defineConfig(async () => {
   return {
     application: {},
+    plugins: [vue(), vueJsx()],
     vite: {
       server: {
         proxy: {
@@ -18,9 +20,5 @@ export default defineConfig(async () => {
         },
       },
     },
-    plugins: [
-      vue(),
-      vueJsx(),
-    ],
   };
 });

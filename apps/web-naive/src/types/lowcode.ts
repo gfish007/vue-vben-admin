@@ -110,20 +110,16 @@ export interface ComponentDefinition {
 
 /** 组件实例 */
 export interface ComponentInstance {
-  componentCode: string;
   componentInstanceId: string;
-  componentName: string;
+  componentCode: string;
   props: Record<string, any>;
-  propsSchema: Record<string, PropSchema>;
-  style: Partial<CSSStyleDeclaration>;
+  style: Record<string, any>;
+  dataBinding: {
+    dsCode: string;
+    path: string;
+  } | null;
+  events: null | Record<string, any>;
   children?: ComponentInstance[];
-  parentId?: string;
-  /** 属性面板配置 */
-  propertyPanel?: PropertyPanelConfig;
-  /** 数据源配置 */
-  dataSource?: DataSource;
-  /** 事件配置 */
-  events?: EventConfig;
 }
 
 /** 组件关系 */
@@ -163,11 +159,45 @@ export interface EventApiConfig {
   dataHandler: string;
 }
 
+/** 事件动作类型 */
+export type ActionType = 'function' | 'loadData' | 'message';
+
+/** 事件动作基础接口 */
+export interface BaseAction {
+  type: ActionType;
+}
+
+/** 加载数据动作 */
+export interface LoadDataAction extends BaseAction {
+  type: 'loadData';
+  target: string; // 目标数据源编码
+  params?: Record<string, any>; // 请求参数
+  success?: Action[]; // 成功后的动作
+  error?: Action[]; // 失败后的动作
+  handler?: string; // 数据处理函数
+}
+
+/** 消息提示动作 */
+export interface MessageAction extends BaseAction {
+  type: 'message';
+  content: string;
+  messageType?: 'error' | 'info' | 'success' | 'warning';
+}
+
+/** 自定义函数动作 */
+export interface FunctionAction extends BaseAction {
+  type: 'function';
+  handler: string; // 函数体
+  dependencies?: string[]; // 依赖的数据源
+}
+
+/** 事件动作联合类型 */
+export type Action = FunctionAction | LoadDataAction | MessageAction;
+
 /** 事件配置 */
 export interface EventConfig {
-  type: 'api' | 'function';
-  api?: EventApiConfig;
-  function?: string;
+  type: string; // 事件类型
+  actions: Action[]; // 事件动作列表
 }
 
 /** 数据源类型 */
@@ -177,16 +207,15 @@ export type DataSourceType = 'API' | 'DATABASE' | 'STATIC';
 export type DataSourceStatus = 0 | 1;
 
 /** 请求方法 */
-export type HttpMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
+export type HttpMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
 /** API数据源配置 */
 export interface ApiDataSourceConfig {
   type: 'API';
   url: string;
   method: HttpMethod;
-  headers?: Record<string, string>;
-  params?: Record<string, any>;
-  body?: Record<string, any>;
+  headers: string;
+  params: string;
 }
 
 /** 数据库数据源配置 */
@@ -203,7 +232,7 @@ export interface DatabaseDataSourceConfig {
 /** 静态数据源配置 */
 export interface StaticDataSourceConfig {
   type: 'STATIC';
-  data: any;
+  data: string;
 }
 
 /** 数据源配置 */
@@ -222,6 +251,8 @@ export interface DataSource {
   config: DataSourceConfig;
   remark?: string;
   status: DataSourceStatus;
+  scope: DataSourceScope;
+  sourceType: DataSourceSourceType;
   variables?: Record<string, any>;
 }
 
@@ -264,4 +295,19 @@ export interface Page {
   /** 页面事件列表 */
   events: PageEvent[];
   components: ComponentInstance[];
+}
+
+export interface DataBinding {
+  // 数据源编码，必填
+  dsCode: string;
+  // 数据路径，必填，如：data.list[0].name
+  path: string;
+  // 默认值，当数据源返回空或出错时使用
+  defaultValue?: any;
+  // 数据转换函数，可选
+  transform?: string;
+  // 自动刷新间隔（毫秒），可选
+  refreshInterval?: number;
+  // 是否在组件挂载时自动加载数据
+  loadOnMount?: boolean;
 }

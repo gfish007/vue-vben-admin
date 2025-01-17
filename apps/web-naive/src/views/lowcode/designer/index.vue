@@ -44,6 +44,7 @@ const initPage = async () => {
 
 // 保存页面
 const handleSave = async () => {
+  console.log('保存页面：', store.currentPage);
   try {
     // 更新页面名称
     if (store.currentPage) {
@@ -144,7 +145,7 @@ onMounted(() => {
       </div>
       <div class="designer-panel right-panel">
         <div class="panel-header">属性配置</div>
-        <div class="panel-body">
+        <div class="right-panel-body">
           <PropertyPanel />
         </div>
       </div>
@@ -226,8 +227,8 @@ onMounted(() => {
   }
 
   &.right-panel {
-    min-width: 400px;
-    max-width: 600px;
+    min-width: 500px;
+    max-width: 700px;
     width: 25%;
 
     .panel-header {
@@ -251,6 +252,12 @@ onMounted(() => {
   flex: 1;
   overflow: hidden;
   padding: 16px;
+  min-height: 0;
+}
+.right-panel-body {
+  flex: 1;
+  overflow: hidden;
+  padding: 0px;
   min-height: 0;
 }
 

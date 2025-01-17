@@ -8,6 +8,7 @@ export { MessageRender } from './MessageRender';
 export { ModalRender } from './ModalRender';
 export { RadioRender } from './RadioRender';
 export { SelectRender } from './SelectRender';
+export { default as SpanData } from './SpanData.vue';
 // 导出所有属性面板组件
 export { default as SpanProperty } from './SpanProperty.vue';
 export { SpanRender } from './SpanRender';

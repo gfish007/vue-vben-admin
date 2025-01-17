@@ -579,7 +579,7 @@ const handleToggleStatus = async (ds: DataSource) => {
 
       <NDataTable
         :columns="columns"
-        :data="store.dataSources"
+        :data="store.dataSourceList"
         :loading="false"
         :pagination="{
           page: pagination.current,

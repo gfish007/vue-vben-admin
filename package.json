@@ -63,6 +63,7 @@
   "dependencies": {
     "@tinymce/tinymce-vue": "^6.0.1",
     "@vicons/ionicons5": "^0.13.0",
+    "monaco-editor": "^0.52.2",
     "nanoid": "^5.0.9",
     "quill": "^2.0.2",
     "tinymce": "^7.3.0",

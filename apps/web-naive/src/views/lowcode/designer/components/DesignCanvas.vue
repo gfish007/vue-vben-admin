@@ -176,6 +176,8 @@ const handleDrop = (event: DragEvent) => {
       componentCode: component.componentCode,
       componentInstanceId: nanoid(),
       componentName: component.componentName,
+      dataBinding: null,
+      events: null,
       propertyPanel: component.propertyPanel,
       props: defaultProps,
       propsSchema: component.propsSchema,

@@ -38,6 +38,7 @@ export const Span: ComponentDefinition = {
   propertyPanel: {
     // 自定义面板组件
     customPanels: {
+      data: 'SpanData', // 使用自定义数据面板
       props: 'SpanProperty', // 使用自定义属性面板
     },
     // 启用的标签页

@@ -249,7 +249,7 @@ watch(
 <style lang="less" scoped>
 .property-panel {
   height: 100%;
-  padding: 16px;
+  padding: 10px;
   overflow: auto;
 }
 </style>
