@@ -1,0 +1,255 @@
+我需要在低代码设计器中创建一个轮播图组件。请按以下步骤进行：
+
+## 1. 项目结构分析
+请先分析以下内容以理解项目结构：
+```typescript
+// 使用 codebase_search 搜索并分析：
+- apps/web-naive/src/views/lowcode/designer/components/definitions/ 下的组件定义
+- 重点查看现有的 Carousel.ts、CarouselProperty.vue、CarouselRender.ts
+- ComponentDefinition 和 Component 类型定义
+```
+
+## 2. 组件需求
+
+### 文件结构
+```
+apps/web-naive/src/views/lowcode/designer/components/definitions/
+├── Carousel.ts            // 组件定义
+├── CarouselProperty.vue   // 属性面板
+└── CarouselRender.ts      // 渲染逻辑
+```
+
+### 组件定义
+```typescript
+// 轮播项数据结构
+export interface CarouselItem {
+  fileUrl: string;    // 图片地址
+  eventType: string;  // 事件类型
+  link: string;       // 跳转链接
+}
+
+export const Carousel: ComponentDefinition = {
+  category: 'display',
+  componentCode: 'Carousel',
+  componentName: '轮播图',
+  defaultProps: {
+    // 轮播控制
+    autoplay: true,           // 自动播放
+    interval: 3000,           // 播放间隔
+    effect: 'slide',          // 切换效果
+    
+    // 指示器
+    dotPlacement: 'bottom',   // 指示器位置
+    showDots: true,           // 显示指示器
+    
+    // 箭头
+    showArrow: true,          // 显示箭头
+    
+    // 测试数据
+    items: [
+      {
+        eventType: 'page',
+        fileUrl: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
+        link: '',
+      },
+      {
+        eventType: 'page',
+        fileUrl: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg',
+        link: '',
+      },
+      {
+        eventType: 'page',
+        fileUrl: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg',
+        link: '',
+      },
+    ] as CarouselItem[],
+  },
+  
+  defaultStyle: {
+    backgroundColor: '#ffffff',
+    border: '1px dashed #e8e8e8',
+    borderRadius: '4px',
+    boxSizing: 'border-box',
+    display: 'block',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: '1px',
+    height: '200px',
+    margin: '0',
+    minHeight: '32px',
+    padding: '0',
+    width: '100%',
+  },
+  
+  group: 'basic',
+  icon: 'i-carbon:carousel-horizontal',
+  
+  propertyPanel: {
+    customPanels: {
+      props: 'CarouselProperty',
+    },
+    enabledTabs: ['props', 'style'],
+  },
+  
+  propsSchema: {
+    autoplay: {
+      defaultValue: true,
+      label: '自动播放',
+      type: 'switch',
+    },
+    dotPlacement: {
+      defaultValue: 'bottom',
+      label: '指示器位置',
+      options: [
+        { label: '顶部', value: 'top' },
+        { label: '底部', value: 'bottom' },
+        { label: '左侧', value: 'left' },
+        { label: '右侧', value: 'right' },
+      ],
+      type: 'select',
+    },
+    effect: {
+      defaultValue: 'slide',
+      label: '切换效果',
+      options: [
+        { label: '滑动', value: 'slide' },
+        { label: '淡入淡出', value: 'fade' },
+      ],
+      type: 'select',
+    },
+    interval: {
+      defaultValue: 3000,
+      label: '播放间隔',
+      max: 10_000,
+      min: 1000,
+      type: 'number',
+    },
+    showArrow: {
+      defaultValue: true,
+      label: '显示箭头',
+      type: 'switch',
+    },
+    showDots: {
+      defaultValue: true,
+      label: '显示指示点',
+      type: 'switch',
+    },
+  },
+};
+```
+
+### 属性面板实现
+```vue
+<!-- CarouselProperty.vue -->
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+import {
+  NButton,
+  NCard,
+  NCollapse,
+  NCollapseItem,
+  NForm,
+  NFormItem,
+  NInput,
+  NSelect,
+  NSpace,
+  NSwitch,
+  NUpload,
+  useMessage,
+} from 'naive-ui';
+
+// 事件类型选项
+const eventTypeOptions = [
+  { label: '跳转页面', value: 'page' },
+  { label: '打开弹窗', value: 'modal' },
+  { label: '跳转外部链接', value: 'external' },
+  { label: '跳转小程序', value: 'miniapp' },
+  { label: '跳转公众号', value: 'wechat' },
+  { label: '跳转H5', value: 'h5' },
+];
+
+// 基础配置
+const baseConfig = ref({
+  autoplay: true,
+  dotPlacement: 'bottom',
+  effect: 'slide',
+  interval: 3000,
+  showArrow: true,
+  showDots: true,
+});
+
+// 轮播图项配置
+const carouselItems = ref([]);
+</script>
+
+<template>
+  <NSpace vertical>
+    <!-- 基础配置 -->
+    <NCard :bordered="false" title="基础配置">
+      <!-- 配置表单 -->
+    </NCard>
+
+    <!-- 轮播图项配置 -->
+    <NCard :bordered="false" title="轮播图配置">
+      <!-- 轮播图项管理 -->
+    </NCard>
+  </NSpace>
+</template>
+```
+
+### 功能要求
+
+1. 基础功能：
+- 自动轮播
+- 手动切换
+- 指示器显示
+- 箭头控制
+- 图片上传
+
+2. 轮播效果：
+- 滑动切换
+- 淡入淡出
+- 自定义间隔时间
+
+3. 交互功能：
+- 点击跳转
+- 预览大图
+- 拖拽排序
+- 批量上传
+
+4. 高级特性：
+- 图片预加载
+- 无缝循环
+- 触摸滑动
+- 键盘控制
+- 自适应高度
+
+5. 性能优化：
+- 图片懒加载
+- 预加载优化
+- 动画性能优化
+
+## 3. 实现步骤
+
+1. 创建组件定义文件 `Carousel.ts`
+   - 定义数据接口
+   - 配置默认属性
+   - 设置属性面板
+
+2. 实现属性面板 `CarouselProperty.vue`
+   - 基础配置项
+   - 轮播图项管理
+   - 上传功能
+   - 拖拽排序
+
+3. 开发渲染器 `CarouselRender.ts`
+   - 实现轮播效果
+   - 处理交互事件
+   - 优化性能
+
+4. 在 `index.ts` 中添加导出
+   - 导出组件定义
+   - 导出属性面板
+   - 导出渲染器
+
+请先开始第1步的项目结构分析，告诉我你的发现，然后我们再继续后续步骤。

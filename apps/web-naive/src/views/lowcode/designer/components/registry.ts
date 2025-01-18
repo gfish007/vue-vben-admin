@@ -1,5 +1,8 @@
 import type { ComponentDefinition } from '../../../../types/lowcode';
 
+import { Carousel } from './definitions/Carousel';
+import { CarouselRender } from './definitions/CarouselRender';
+
 /**
  * 组件分类定义
  */
@@ -41,3 +44,10 @@ const modules = import.meta.glob<{ [key: string]: ComponentDefinition }>(
 export const components: ComponentDefinition[] = Object.values(modules)
   .map((module) => Object.values(module)[0])
   .filter((component): component is ComponentDefinition => !!component);
+
+export const componentRegistry = {
+  Carousel: {
+    component: Carousel,
+    render: CarouselRender,
+  },
+};

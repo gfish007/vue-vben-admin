@@ -1,116 +1,123 @@
-import { h, defineComponent, computed } from 'vue';
-import type { PropType } from 'vue';
-import { NCarousel } from 'naive-ui';
+import type { CarouselItem } from './Carousel';
+
 import type { ComponentRelation } from '#/types/lowcode';
+
+import { defineComponent, h } from 'vue';
+
+import { NCarousel } from 'naive-ui';
 
 export const CarouselRender = defineComponent({
   name: 'CarouselRender',
   props: {
-    node: {
-      type: Object as PropType<ComponentRelation>,
-      required: true,
-    },
     isPreview: {
-      type: Boolean,
       default: false,
+      type: Boolean,
+    },
+    node: {
+      required: true,
+      type: Object as () => ComponentRelation,
     },
   },
   setup(props) {
-    const carouselProps = computed(() => {
-      const {
-        autoplay = true,
-        interval = 3000,
-        effect = 'slide',
-        dotType = 'dot',
-        dotPlacement = 'bottom',
-        showArrow = 'hover',
-        style = {},
-        image1 = {
-          url: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg',
-          title: '图片1',
-          description: '',
-          linkType: 'none',
-          link: '',
-          target: '_self',
-        },
-        image2 = {
-          url: '',
-          title: '图片2',
-          description: '',
-          linkType: 'none',
-          link: '',
-          target: '_self',
-        },
-        image3 = {
-          url: '',
-          title: '图片3',
-          description: '',
-          linkType: 'none',
-          link: '',
-          target: '_self',
-        },
-      } = props.node.props || {};
-
-      // 从style中移除width，因为我们希望轮播图总是填满wrapper
-      const { width: _, ...otherStyles } = style;
-
-      // 构建图片列表，只包含有URL的图片
-      const images = [image1, image2, image3].filter(img => img.url);
-
-      return {
-        autoplay,
-        interval,
-        effect,
-        dotType,
-        dotPlacement,
-        showArrow,
-        style: {
-          width: '100%',
-          height: '240px',
-          ...otherStyles,
-        },
-        images,
-      };
-    });
-
-    // 处理图片点击
-    const handleImageClick = (image: any) => {
-      if (!props.isPreview || image.linkType === 'none') return;
-
-      if (image.linkType === 'external') {
-        window.open(image.link, image.target);
-      } else if (image.linkType === 'internal') {
-        // 处理内部页面跳转
-        console.log('Navigate to internal page:', image.link);
-        // TODO: 实现内部页面跳转逻辑
-      }
-    };
-
     return () => {
-      const { images, ...restProps } = carouselProps.value;
+      const { node } = props;
+      const {
+        autoplay,
+        dotPlacement,
+        effect,
+        interval,
+        showArrow,
+        showDots,
+        items = [],
+      } = node.props || {};
 
-      return h(NCarousel, {
-        ...restProps,
-      }, {
-        default: () =>
-          images.map((image: any, index: number) => {
-            const imgElement = h('img', {
-              key: index,
-              src: image.url,
-              alt: image.title,
-              title: image.description || image.title,
-              style: {
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                cursor: props.isPreview && image.linkType !== 'none' ? 'pointer' : 'default',
-              },
-              onClick: () => handleImageClick(image),
-            });
-
-            return imgElement;
-          }),
+      console.log('【渲染追踪】CarouselRender 收到的数据:', {
+        其他配置: {
+          autoplay,
+          dotPlacement,
+          effect,
+          interval,
+          showArrow,
+          showDots,
+        },
+        轮播图总数: items.length,
+        轮播图数据: items,
       });
+
+      // 过滤掉没有图片的项
+      const validItems = (items as CarouselItem[]).filter(
+        (item) => item.fileUrl,
+      );
+
+      console.log('【渲染追踪】过滤后的有效轮播图:', {
+        有效数据: validItems,
+        有效数量: validItems.length,
+      });
+
+      // 如果没有有效的轮播项，显示占位图
+      if (validItems.length === 0) {
+        return h(
+          'div',
+          {
+            style: {
+              ...node.props?.style,
+              alignItems: 'center',
+              backgroundColor: '#f5f5f5',
+              color: '#999',
+              display: 'flex',
+              justifyContent: 'center',
+            },
+          },
+          '请添加轮播图片',
+        );
+      }
+
+      return h(
+        NCarousel,
+        {
+          autoplay,
+          dotPlacement,
+          effect,
+          interval,
+          showArrow,
+          showDots,
+          style: node.props?.style,
+        },
+        {
+          default: () =>
+            validItems.map((item) => {
+              const imgStyle = {
+                height: '100%',
+                objectFit: 'cover' as const,
+                width: '100%',
+              };
+
+              const content = h('img', {
+                src: item.fileUrl,
+                style: imgStyle,
+              });
+
+              // 如果有链接，则包装一个 a 标签
+              if (item.link && item.eventType) {
+                return h(
+                  'a',
+                  {
+                    href: item.link,
+                    style: {
+                      display: 'block',
+                      height: '100%',
+                      width: '100%',
+                    },
+                    target: '_blank',
+                  },
+                  content,
+                );
+              }
+
+              return content;
+            }),
+        },
+      );
     };
   },
-}); 
+});

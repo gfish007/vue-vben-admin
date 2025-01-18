@@ -1,0 +1,338 @@
+我需要在低代码设计器中创建一个金刚区导航组件。请按以下步骤进行：
+
+## 1. 项目结构分析
+请先分析以下内容以理解项目结构：
+```typescript
+// 使用 codebase_search 搜索并分析：
+- apps/web-naive/src/views/lowcode/designer/components/definitions/ 下的组件定义
+- 重点查看 Span.ts、Carousel.ts 等布局类组件
+- ComponentDefinition 和 Component 类型定义
+- Property.vue 的实现模式
+- Render.ts 的编写方式
+```
+
+## 2. 组件需求
+
+### 文件结构
+```
+apps/web-naive/src/views/lowcode/designer/components/definitions/
+├── QuickNav.ts            // 组件定义
+├── QuickNavProperty.vue   // 属性面板
+└── QuickNavRender.ts      // 渲染逻辑
+```
+
+### 组件定义
+```typescript
+// 导航项数据结构
+export interface QuickNavItem {
+  id: string;
+  icon: string;          // 图标
+  iconColor?: string;    // 图标颜色
+  title: string;         // 标题
+  subtitle?: string;     // 副标题
+  badge?: {             // 徽标
+    show: boolean;
+    content: string;
+    color: string;
+  };
+  link: {               // 跳转链接
+    type: 'page' | 'url';
+    value: string;
+  };
+  disabled?: boolean;    // 是否禁用
+  order?: number;        // 排序
+  visible?: boolean;     // 是否显示
+}
+
+// 响应式配置
+interface ResponsiveConfig {
+  xs: number;  // <576px
+  sm: number;  // ≥576px
+  md: number;  // ≥768px
+  lg: number;  // ≥992px
+  xl: number;  // ≥1200px
+}
+
+export const QuickNav: ComponentDefinition = {
+  category: 'navigation',
+  componentCode: 'QuickNav',
+  componentName: '金刚区',
+  defaultProps: {
+    // 布局相关
+    layout: 'grid',           // grid/horizontal/vertical
+    columnsCount: 5,          // 每行个数
+    showBorder: true,         // 显示边框
+    showBackground: true,     // 显示背景色
+    
+    // 显示控制
+    showTitle: true,          // 显示标题
+    showSubtitle: false,      // 显示副标题
+    iconSize: 32,             // 图标大小
+    
+    // 样式相关
+    gutter: 16,               // 间距
+    borderRadius: 8,          // 圆角
+    activeScale: 1.05,        // 点击缩放比例
+    
+    // 动画相关
+    enableAnimation: true,    // 是否启用动画
+    animationType: 'scale',   // scale/fade/none
+    
+    // 响应式配置
+    responsive: {
+      xs: 3,  // <576px 每行3个
+      sm: 4,  // ≥576px 每行4个
+      md: 5,  // ≥768px 每行5个
+      lg: 6,  // ≥992px 每行6个
+      xl: 8   // ≥1200px 每行8个
+    } as ResponsiveConfig,
+    
+    // 徽标默认样式
+    badgeStyle: {
+      backgroundColor: '#f5222d',
+      textColor: '#ffffff',
+      borderRadius: '10px',
+      padding: '0 6px'
+    },
+    
+    // 测试数据
+    items: [
+      {
+        id: '1',
+        icon: 'i-carbon:home',
+        iconColor: '#1890ff',
+        title: '首页',
+        subtitle: '回到首页',
+        badge: {
+          show: false,
+          content: '',
+          color: '#f5222d'
+        },
+        link: {
+          type: 'page',
+          value: '/home'
+        },
+        disabled: false,
+        order: 1,
+        visible: true
+      },
+      {
+        id: '2',
+        icon: 'i-carbon:shopping-cart',
+        iconColor: '#52c41a',
+        title: '购物车',
+        badge: {
+          show: true,
+          content: '99+',
+          color: '#f5222d'
+        },
+        link: {
+          type: 'page',
+          value: '/cart'
+        },
+        disabled: false,
+        order: 2,
+        visible: true
+      }
+    ] as QuickNavItem[],
+  },
+  
+  defaultStyle: {
+    backgroundColor: '#ffffff',
+    border: '1px dashed #e8e8e8',
+    borderRadius: '4px',
+    boxSizing: 'border-box',
+    display: 'block',
+    padding: '16px',
+    width: '100%',
+    minHeight: '120px'
+  },
+  
+  group: 'basic',
+  icon: 'i-carbon:grid',
+  
+  propertyPanel: {
+    customPanels: {
+      props: 'QuickNavProperty'
+    },
+    enabledTabs: ['props', 'style']
+  },
+  
+  propsSchema: {
+    layout: {
+      label: '布局方式',
+      type: 'select',
+      options: [
+        { label: '网格', value: 'grid' },
+        { label: '水平', value: 'horizontal' },
+        { label: '垂直', value: 'vertical' }
+      ]
+    },
+    columnsCount: {
+      label: '每行个数',
+      type: 'number',
+      min: 3,
+      max: 8,
+      defaultValue: 5
+    },
+    showBorder: {
+      label: '显示边框',
+      type: 'switch',
+      defaultValue: true
+    },
+    showBackground: {
+      label: '显示背景',
+      type: 'switch',
+      defaultValue: true
+    },
+    showTitle: {
+      label: '显示标题',
+      type: 'switch',
+      defaultValue: true
+    },
+    showSubtitle: {
+      label: '显示副标题',
+      type: 'switch',
+      defaultValue: false
+    },
+    iconSize: {
+      label: '图标大小',
+      type: 'number',
+      min: 16,
+      max: 64,
+      defaultValue: 32
+    },
+    gutter: {
+      label: '间距',
+      type: 'number',
+      min: 0,
+      max: 48,
+      defaultValue: 16
+    },
+    borderRadius: {
+      label: '圆角',
+      type: 'number',
+      min: 0,
+      max: 24,
+      defaultValue: 8
+    },
+    activeScale: {
+      label: '点击缩放',
+      type: 'number',
+      min: 1,
+      max: 1.2,
+      step: 0.01,
+      defaultValue: 1.05
+    },
+    enableAnimation: {
+      label: '启用动画',
+      type: 'switch',
+      defaultValue: true
+    },
+    animationType: {
+      label: '动画类型',
+      type: 'select',
+      options: [
+        { label: '缩放', value: 'scale' },
+        { label: '淡入淡出', value: 'fade' },
+        { label: '无', value: 'none' }
+      ],
+      defaultValue: 'scale'
+    },
+    responsive: {
+      label: '响应式配置',
+      type: 'object',
+      properties: {
+        xs: { label: '超小屏', type: 'number', min: 2, max: 6 },
+        sm: { label: '小屏', type: 'number', min: 2, max: 6 },
+        md: { label: '中屏', type: 'number', min: 3, max: 8 },
+        lg: { label: '大屏', type: 'number', min: 4, max: 8 },
+        xl: { label: '超大屏', type: 'number', min: 4, max: 10 }
+      }
+    },
+    badgeStyle: {
+      label: '徽标样式',
+      type: 'object',
+      properties: {
+        backgroundColor: { label: '背景色', type: 'color' },
+        textColor: { label: '文字颜色', type: 'color' },
+        borderRadius: { label: '圆角', type: 'string' },
+        padding: { label: '内边距', type: 'string' }
+      }
+    }
+  }
+};
+```
+
+### 功能要求
+
+1. 基础功能：
+- 支持网格、水平、垂直三种布局
+- 可配置每行显示数量（网格模式）
+- 支持图标、标题、副标题、徽标展示
+- 支持页面跳转和外部链接
+
+2. 样式特性：
+- 可配置边框和背景色
+- 可配置图标大小和颜色
+- 可配置间距和圆角
+- 点击时缩放动效
+- 支持徽标自定义样式
+- 响应式布局适配
+
+3. 交互功能：
+- 点击跳转
+- 点击动效
+- 徽标显示
+- 支持禁用状态
+- 支持拖拽排序
+
+4. 高级特性：
+- 响应式布局自适应
+- 自定义动画效果
+- 项目拖拽排序
+- 批量导入导出
+- 支持自定义图标库
+- 支持多主题配置
+
+5. 性能优化：
+- 图标懒加载
+- 虚拟滚动（项目过多时）
+- 动画性能优化
+- 按需渲染
+
+6. 辅助功能：
+- 键盘导航支持
+- 无障碍访问支持
+- 支持 RTL 布局
+- 多语言支持
+
+## 3. 实现步骤
+
+1. 创建组件定义文件 `QuickNav.ts`
+   - 定义数据接口
+   - 配置默认属性
+   - 设置属性面板
+   - 添加响应式配置
+
+2. 实现属性面板 `QuickNavProperty.vue`
+   - 基础属性配置
+   - 样式属性配置
+   - 响应式配置
+   - 动画配置
+   - 徽标样式配置
+   - 导航项管理器
+
+3. 开发渲染器 `QuickNavRender.ts`
+   - 实现三种布局模式
+   - 处理响应式逻辑
+   - 实现动画效果
+   - 处理事件绑定
+   - 优化渲染性能
+
+4. 在 `index.ts` 中添加导出
+   - 导出组件定义
+   - 导出属性面板
+   - 导出渲染器
+
+请先开始第1步的项目结构分析，告诉我你的发现，然后我们再继续后续步骤。

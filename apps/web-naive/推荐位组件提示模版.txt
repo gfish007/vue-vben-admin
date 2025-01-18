@@ -1,0 +1,367 @@
+我需要在低代码设计器中创建一个推荐位组件。请按以下步骤进行：
+
+## 1. 项目结构分析
+请先分析以下内容以理解项目结构：
+```typescript
+// 使用 codebase_search 搜索并分析：
+- apps/web-naive/src/views/lowcode/designer/components/definitions/ 下的组件定义
+- 重点查看 Carousel.ts、Card.ts、List.ts 等展示类组件
+- ComponentDefinition 和 Component 类型定义
+- Property.vue 的实现模式
+- Render.ts 的编写方式
+```
+
+## 2. 组件需求
+
+### 文件结构
+```
+apps/web-naive/src/views/lowcode/designer/components/definitions/
+├── Recommend.ts            // 组件定义
+├── RecommendProperty.vue   // 属性面板
+└── RecommendRender.ts      // 渲染逻辑
+```
+
+### 组件定义
+```typescript
+// 推荐商品数据结构
+export interface RecommendItem {
+  id: string;
+  title: string;         // 标题
+  subtitle?: string;     // 副标题
+  image: string;         // 主图
+  images?: string[];     // 多图模式
+  price?: {
+    current: number;     // 当前价格
+    original?: number;   // 原价
+    prefix?: string;     // 价格前缀
+    suffix?: string;     // 价格后缀
+  };
+  tags?: Array<{        // 标签
+    text: string;
+    color?: string;
+    backgroundColor?: string;
+  }>;
+  badge?: {             // 徽标
+    text: string;
+    type: 'primary' | 'success' | 'warning' | 'error';
+  };
+  link: {               // 跳转链接
+    type: 'page' | 'url' | 'none';
+    value: string;
+  };
+  statistics?: {        // 统计数据
+    sales?: number;     // 销量
+    views?: number;     // 浏览量
+    likes?: number;     // 点赞数
+  };
+}
+
+export const Recommend: ComponentDefinition = {
+  category: 'display',
+  componentCode: 'Recommend',
+  componentName: '推荐位',
+  defaultProps: {
+    // 布局相关
+    mode: 'card',              // card/list/waterfall
+    layout: 'horizontal',      // horizontal/vertical
+    columnsCount: 2,           // 每行个数
+    aspectRatio: '1:1',        // 图片宽高比
+    
+    // 显示控制
+    showTitle: true,           // 显示标题
+    showSubtitle: false,       // 显示副标题
+    showPrice: true,           // 显示价格
+    showOriginalPrice: true,   // 显示原价
+    showTags: true,           // 显示标签
+    showBadge: true,          // 显示徽标
+    showStatistics: false,     // 显示统计数据
+    
+    // 图片相关
+    imageMode: 'single',       // single/multiple
+    imageCount: 1,             // 多图模式下显示数量
+    imageFit: 'cover',         // fill/contain/cover
+    
+    // 样式相关
+    gutter: 16,               // 间距
+    borderRadius: 8,          // 圆角
+    shadow: true,             // 阴影效果
+    hoverScale: 1.02,         // 悬浮缩放
+    
+    // 动画相关
+    animation: {
+      type: 'fade',           // none/fade/slide
+      duration: 300,
+      delay: 0
+    },
+    
+    // 测试数据
+    items: [
+      {
+        id: '1',
+        title: '商品标题1',
+        subtitle: '商品副标题',
+        image: 'https://example.com/image1.jpg',
+        price: {
+          current: 99.9,
+          original: 199.9,
+          prefix: '¥',
+        },
+        tags: [
+          { text: '热销', color: '#fff', backgroundColor: '#f5222d' },
+          { text: '限时', color: '#fff', backgroundColor: '#faad14' }
+        ],
+        badge: {
+          text: 'HOT',
+          type: 'error'
+        },
+        link: {
+          type: 'page',
+          value: '/detail/1'
+        },
+        statistics: {
+          sales: 1000,
+          views: 5000,
+          likes: 200
+        }
+      }
+    ] as RecommendItem[],
+  },
+  
+  defaultStyle: {
+    backgroundColor: '#ffffff',
+    border: '1px dashed #e8e8e8',
+    borderRadius: '4px',
+    boxSizing: 'border-box',
+    display: 'block',
+    padding: '16px',
+    width: '100%',
+    minHeight: '200px'
+  },
+  
+  group: 'basic',
+  icon: 'i-carbon:recommend',
+  
+  propertyPanel: {
+    customPanels: {
+      props: 'RecommendProperty'
+    },
+    enabledTabs: ['props', 'style']
+  },
+  
+  propsSchema: {
+    mode: {
+      label: '展示模式',
+      type: 'select',
+      options: [
+        { label: '卡片', value: 'card' },
+        { label: '列表', value: 'list' },
+        { label: '瀑布流', value: 'waterfall' }
+      ]
+    },
+    layout: {
+      label: '布局方向',
+      type: 'select',
+      options: [
+        { label: '水平', value: 'horizontal' },
+        { label: '垂直', value: 'vertical' }
+      ]
+    },
+    columnsCount: {
+      label: '每行个数',
+      type: 'number',
+      min: 1,
+      max: 4,
+      defaultValue: 2
+    },
+    aspectRatio: {
+      label: '图片比例',
+      type: 'select',
+      options: [
+        { label: '1:1', value: '1:1' },
+        { label: '4:3', value: '4:3' },
+        { label: '16:9', value: '16:9' },
+        { label: '3:4', value: '3:4' }
+      ]
+    },
+    showTitle: {
+      label: '显示标题',
+      type: 'switch',
+      defaultValue: true
+    },
+    showSubtitle: {
+      label: '显示副标题',
+      type: 'switch',
+      defaultValue: false
+    },
+    showPrice: {
+      label: '显示价格',
+      type: 'switch',
+      defaultValue: true
+    },
+    showOriginalPrice: {
+      label: '显示原价',
+      type: 'switch',
+      defaultValue: true
+    },
+    showTags: {
+      label: '显示标签',
+      type: 'switch',
+      defaultValue: true
+    },
+    showBadge: {
+      label: '显示徽标',
+      type: 'switch',
+      defaultValue: true
+    },
+    showStatistics: {
+      label: '显示统计',
+      type: 'switch',
+      defaultValue: false
+    },
+    imageMode: {
+      label: '图片模式',
+      type: 'select',
+      options: [
+        { label: '单图', value: 'single' },
+        { label: '多图', value: 'multiple' }
+      ]
+    },
+    imageCount: {
+      label: '图片数量',
+      type: 'number',
+      min: 1,
+      max: 9,
+      defaultValue: 1
+    },
+    imageFit: {
+      label: '图片填充',
+      type: 'select',
+      options: [
+        { label: '填充', value: 'fill' },
+        { label: '包含', value: 'contain' },
+        { label: '覆盖', value: 'cover' }
+      ]
+    },
+    gutter: {
+      label: '间距',
+      type: 'number',
+      min: 0,
+      max: 48,
+      defaultValue: 16
+    },
+    borderRadius: {
+      label: '圆角',
+      type: 'number',
+      min: 0,
+      max: 24,
+      defaultValue: 8
+    },
+    shadow: {
+      label: '阴影效果',
+      type: 'switch',
+      defaultValue: true
+    },
+    hoverScale: {
+      label: '悬浮缩放',
+      type: 'number',
+      min: 1,
+      max: 1.2,
+      step: 0.01,
+      defaultValue: 1.02
+    },
+    animation: {
+      label: '动画配置',
+      type: 'object',
+      properties: {
+        type: {
+          label: '动画类型',
+          type: 'select',
+          options: [
+            { label: '无', value: 'none' },
+            { label: '淡入', value: 'fade' },
+            { label: '滑入', value: 'slide' }
+          ]
+        },
+        duration: {
+          label: '动画时长',
+          type: 'number',
+          min: 0,
+          max: 1000,
+          step: 100
+        },
+        delay: {
+          label: '延迟时间',
+          type: 'number',
+          min: 0,
+          max: 1000,
+          step: 100
+        }
+      }
+    }
+  }
+};
+```
+
+### 功能要求
+
+1. 基础功能：
+- 支持卡片、列表、瀑布流三种模式
+- 支持水平和垂直布局
+- 支持单图和多图模式
+- 灵活的内容展示配置
+
+2. 样式特性：
+- 可配置图片宽高比
+- 支持多种图片填充模式
+- 可配置间距和圆角
+- 支持阴影效果
+- 支持悬浮缩放
+- 自定义标签和徽标样式
+
+3. 交互功能：
+- 点击跳转
+- 图片预览
+- 统计数据展示
+- 动画效果
+
+4. 高级特性：
+- 瀑布流布局
+- 多图轮播
+- 图片懒加载
+- 自定义动画效果
+- 支持数据绑定
+
+5. 性能优化：
+- 图片懒加载
+- 虚拟滚动
+- 按需渲染
+- 动画性能优化
+
+## 3. 实现步骤
+
+1. 创建组件定义文件 `Recommend.ts`
+   - 定义数据接口
+   - 配置默认属性
+   - 设置属性面板
+   - 添加展示模式配置
+
+2. 实现属性面板 `RecommendProperty.vue`
+   - 基础属性配置
+   - 样式属性配置
+   - 展示项配置
+   - 动画配置
+   - 数据配置
+
+3. 开发渲染器 `RecommendRender.ts`
+   - 实现三种展示模式
+   - 处理图片加载
+   - 实现动画效果
+   - 处理事件绑定
+   - 优化渲染性能
+
+4. 在 `index.ts` 中添加导出
+   - 导出组件定义
+   - 导出属性面板
+   - 导出渲染器
+
+请先开始第1步的项目结构分析，告诉我你的发现，然后我们再继续后续步骤。

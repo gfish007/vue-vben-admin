@@ -1,5 +1,7 @@
 // 导出所有渲染函数
 export { AlertRender } from './AlertRender';
+export { default as CarouselProperty } from './CarouselProperty.vue';
+export { CarouselRender } from './CarouselRender';
 export { CheckboxRender } from './CheckboxRender';
 export { ContainerRender } from './ContainerRender';
 export { InputRender } from './InputRender';
@@ -13,5 +15,6 @@ export { default as SpanData } from './SpanData.vue';
 export { default as SpanProperty } from './SpanProperty.vue';
 export { SpanRender } from './SpanRender';
 export { SwitchRender } from './SwitchRender';
+
 export { TableRender } from './TableRender';
 export { TreeRender } from './TreeRender';

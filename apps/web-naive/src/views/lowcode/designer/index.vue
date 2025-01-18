@@ -17,6 +17,7 @@ const message = useMessage();
 
 const pageName = ref('未命名页面');
 const isEditingName = ref(false);
+const isSaving = ref(false);
 
 // 初始化页面
 const initPage = async () => {
@@ -44,8 +45,11 @@ const initPage = async () => {
 
 // 保存页面
 const handleSave = async () => {
+  if (isSaving.value) return;
+
   console.log('保存页面：', store.currentPage);
   try {
+    isSaving.value = true;
     // 更新页面名称
     if (store.currentPage) {
       store.updateCurrentPage({
@@ -64,6 +68,8 @@ const handleSave = async () => {
   } catch (error) {
     console.error('Failed to save page:', error);
     message.error(`保存失败：${(error as Error).message}`);
+  } finally {
+    isSaving.value = false;
   }
 };
 
@@ -113,7 +119,7 @@ onMounted(() => {
             </template>
             预览
           </NButton>
-          <NButton size="small" @click="handleSave">
+          <NButton :loading="isSaving" size="small" @click="handleSave">
             <template #icon>
               <NIcon>
                 <SaveOutline />
