@@ -45,6 +45,12 @@ const handleStyleUpdate = (field: string, value: unknown) => {
 };
 </script>
 
+<script lang="ts">
+export default {
+  name: 'SpanProperty',
+};
+</script>
+
 <template>
   <NForm label-placement="left" label-width="100">
     <NSpace vertical>

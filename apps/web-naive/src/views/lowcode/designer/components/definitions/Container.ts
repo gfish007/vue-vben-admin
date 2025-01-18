@@ -4,7 +4,7 @@ import type { Component } from '#/types/lowcode';
  * 容器组件定义
  * 用于布局和组织其他组件
  */
-export const Container: Component = {
+const Container: Component = {
   // 组件分类
   category: 'layout',
   componentCode: 'Container',
@@ -75,3 +75,5 @@ export const Container: Component = {
     },
   },
 };
+
+export default Container;

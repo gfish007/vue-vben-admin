@@ -6,15 +6,21 @@ import { computed, markRaw, ref, watch } from 'vue';
 import { NEmpty, NTabPane, NTabs } from 'naive-ui';
 
 import { useLowCodeStore } from '../../../../store/modules/lowcode';
-import * as componentRenders from './definitions';
+import components from './definitions';
 import DefaultDataPanel from './panels/DefaultDataPanel.vue';
 import DefaultEventPanel from './panels/DefaultEventPanel.vue';
 import DefaultPropsPanel from './panels/DefaultPropsPanel.vue';
 import DefaultStylePanel from './panels/DefaultStylePanel.vue';
-import { components } from './registry';
+import { components as componentRegistry } from './registry';
 
 // 记录可用的组件渲染器
-console.log('[PropertyPanel] 可用的组件渲染器:', Object.keys(componentRenders));
+console.log('[PropertyPanel] 可用的组件和面板:', {
+  事件面板列表: Object.keys(components.modules.events),
+  属性面板列表: Object.keys(components.modules.properties),
+  数据面板列表: Object.keys(components.modules.data),
+  样式面板列表: Object.keys(components.modules.styles),
+  组件列表: Object.keys(components.modules.components),
+});
 
 const store = useLowCodeStore();
 
@@ -65,8 +71,8 @@ const getPanelComponent = async (type: string) => {
   // 获取组件定义
   const componentCode = currentComponent.value.componentCode;
   console.log('Looking for component definition:', {
-    availableComponents: Object.keys(componentRenders),
     componentCode,
+    可用组件: Object.keys(components.modules.components),
   });
 
   // 尝试从组件实例或组件定义中获取 propertyPanel 配置
@@ -77,7 +83,7 @@ const getPanelComponent = async (type: string) => {
     // 如果组件实例中没有配置，尝试从组件定义中获取
     try {
       // 从 registry 中获取组件定义
-      const componentDef = components.find(
+      const componentDef = componentRegistry.find(
         (comp) => comp.componentCode === componentCode,
       );
       console.log('Found component definition:', componentDef);
@@ -106,12 +112,26 @@ const getPanelComponent = async (type: string) => {
     });
 
     if (customPanelName) {
-      console.log(
-        'Available component renders:',
-        Object.keys(componentRenders),
-      );
-      const customPanel =
-        componentRenders[customPanelName as keyof typeof componentRenders];
+      let customPanel;
+      switch (type.toLowerCase()) {
+        case 'props': {
+          customPanel = components.getProperty(componentCode);
+          break;
+        }
+        case 'data': {
+          customPanel = components.getData(componentCode);
+          break;
+        }
+        case 'event': {
+          customPanel = components.getEvent(componentCode);
+          break;
+        }
+        case 'style': {
+          customPanel = components.getStyle(componentCode);
+          break;
+        }
+      }
+
       console.log('Custom panel lookup result:', {
         found: !!customPanel,
         name: customPanelName,

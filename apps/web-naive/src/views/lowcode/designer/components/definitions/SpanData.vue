@@ -358,6 +358,12 @@ watch(
 );
 </script>
 
+<script lang="ts">
+export default {
+  name: 'SpanData',
+};
+</script>
+
 <template>
   <NCard size="small" title="数据配置">
     <NForm label-placement="left" label-width="80">

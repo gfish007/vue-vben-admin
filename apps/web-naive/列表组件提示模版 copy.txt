@@ -1,224 +1,201 @@
-请帮我以 role/index.vue 的页面作为模版，替换一下内容，实现下面的功能
+我需要在低代码设计器中创建一个商品列表组件。请按以下步骤进行：
 
-查询区域：
-	查询条件：
-	public class SysUser {
+## 1. 项目结构分析
+请先分析以下内容以理解项目结构：
+```typescript
+// 使用 codebase_search 搜索并分析：
+- apps/web-naive/src/views/lowcode/designer/components/definitions/ 下的组件定义
+- 重点查看 Span.ts、Carousel.ts 等展示类组件
+- ComponentDefinition 和 Component 类型定义
+- Property.vue 的实现模式
+- Render.ts 的编写方式
+```
 
-	    /**
-	     * 手机号
-	     */
-	  private String phone;
+## 2. 组件需求
 
-    /**
-     * 状态 启用 | 禁用
-     */
-    private Boolean enabled;
-	}
+### 文件结构
+```
+apps/web-naive/src/views/lowcode/designer/components/definitions/
+├── ProductList.ts            // 组件定义
+├── ProductListProperty.vue   // 属性面板
+├── ProductListRender.ts      // 渲染逻辑
+└── ProductListData.vue       // 数据配置面板
+```
 
-	按钮：
-		搜索、重置、新增用户。
+### 组件定义
+```typescript
+export interface ProductItem {
+  id: string;
+  title: string;
+  price: number;
+  image: string;
+  description: string;
+  tags: Array<{
+    label: string;
+    color?: string;
+  }>;
+}
 
-列表结果区域：
+export const ProductList: ComponentDefinition = {
+  category: 'display',
+  componentCode: 'ProductList',
+  componentName: '商品列表',
+  defaultProps: {
+    // 布局相关
+    layout: 'grid',
+    columnsCount: 4,
+    
+    // 显示控制
+    showPrice: true,
+    showDescription: true,
+    showTags: true,
+    
+    // 加载更多
+    enableLoadMore: true,
+    loadMoreText: '加载更多',
+    noMoreText: '没有更多了',
+    
+    // 下拉刷新
+    enablePullRefresh: false,
+    refreshText: '下拉刷新',
+    refreshSuccessText: '刷新成功',
+    
+    // 数据绑定
+    dataBinding: null,
+    
+    // 测试数据
+    items: [
+      {
+        id: '1',
+        title: '示例商品1',
+        price: 99.99,
+        image: 'https://example.com/image1.jpg',
+        description: '这是一个示例商品',
+        tags: [
+          { label: '新品', color: '#f5222d' },
+          { label: '热销', color: '#faad14' }
+        ]
+      }
+    ] as ProductItem[],
+  },
+  
+  defaultStyle: {
+    backgroundColor: '#ffffff',
+    border: '1px dashed #e8e8e8',
+    borderRadius: '4px',
+    boxSizing: 'border-box',
+    display: 'block',
+    padding: '16px',
+    width: '100%',
+    minHeight: '200px'
+  },
+  
+  group: 'basic',
+  icon: 'i-carbon:catalog',
+  
+  propertyPanel: {
+    customPanels: {
+      props: 'ProductListProperty',
+      data: 'ProductListData'
+    },
+    enabledTabs: ['props', 'style', 'data']
+  },
+  
+  propsSchema: {
+    layout: {
+      label: '布局方式',
+      type: 'select',
+      options: [
+        { label: '网格', value: 'grid' },
+        { label: '列表', value: 'list' }
+      ]
+    },
+    columnsCount: {
+      label: '列数',
+      type: 'number',
+      min: 2,
+      max: 6,
+      defaultValue: 4
+    },
+    showPrice: {
+      label: '显示价格',
+      type: 'switch',
+      defaultValue: true
+    },
+    showDescription: {
+      label: '显示描述',
+      type: 'switch',
+      defaultValue: true
+    },
+    showTags: {
+      label: '显示标签',
+      type: 'switch',
+      defaultValue: true
+    },
+    enableLoadMore: {
+      label: '启用加载更多',
+      type: 'switch',
+      defaultValue: true
+    },
+    loadMoreText: {
+      label: '加载文案',
+      type: 'input',
+      defaultValue: '加载更多'
+    },
+    noMoreText: {
+      label: '无数据文案',
+      type: 'input',
+      defaultValue: '没有更多了'
+    },
+    enablePullRefresh: {
+      label: '启用下拉刷新',
+      type: 'switch',
+      defaultValue: false
+    },
+    refreshText: {
+      label: '刷新文案',
+      type: 'input',
+      defaultValue: '下拉刷新'
+    },
+    refreshSuccessText: {
+      label: '刷新成功文案',
+      type: 'input',
+      defaultValue: '刷新成功'
+    }
+  }
+};
+```
 
-	列表内容：
-	public class SysRole extends BaseEntity {
+### 功能要求
 
-	    private Long id;
+1. 基础功能：
+- 支持网格和列表两种布局
+- 可配置每行显示数量（网格模式）
+- 商品信息展示（图片、标题、价格、描述、标签）
+- 响应式布局适配
 
-    /**
-     * 创建时间
-     */
-    private LocalDateTime gmtCreate;
+2. 数据加载：
+- 支持静态数据和API数据源
+- 支持下拉刷新
+- 支持加载更多
+- 加载状态展示
 
-    /**
-     * 更新时间
-     */
-    private LocalDateTime gmtModified;
+3. 样式特性：
+- 商品卡片阴影效果
+- 鼠标悬停放大效果
+- 可配置卡片圆角和边距
+- 加载状态骨架屏
+- 下拉刷新动画
+- 标签自定义颜色
 
-    /**
-     * 手机号
-     */
-    private String phone;
+## 3. 实现步骤
 
-    /**
-     * 邮箱
-     */
-    private String email;
+请按照以下顺序实现组件：
 
-    /**
-     * 昵称
-     */
-    private String nickname;
+1. 创建组件定义文件 `ProductList.ts`
+2. 实现数据配置面板 `ProductListData.vue`
+3. 实现属性面板 `ProductListProperty.vue`
+4. 开发渲染器 `ProductListRender.ts`
+5. 在 `index.ts` 中添加导出
 
-    /**
-     * 真实姓名
-     */
-    private String realName;
-
-    /**
-     * 头像
-     */
-    private String avatar;
-
-    /**
-     * 简介
-     */
-    private String description;
-
-    /**
-     * 状态 启用 | 禁用
-     */
-    private Boolean enabled;
-	}
-
-	操作项：
-		编辑、删除、禁用|启用
-
-接口内容如下：
-查询接口：
-    POST /open/sysUser/list
-    入参：
-	    {
-		    "page": {
-		        "size": 10,
-		        "current": 1
-		    },
-		    "queryBody": {}
-		}
-    响应：
-	    {
-		    "code": 0,
-		    "message": "操作成功！",
-		    "data": {
-		        "records": [  //结果
-		        ],
-		        "total": 0,   //总记录数
-		        "size": 10,
-		        "current": 1,
-		        "orders": [],
-		        "optimizeCountSql": true,
-		        "searchCount": true,
-		        "maxLimit": null,
-		        "countId": null,
-		        "pages": 0   //总页数
-		    },
-		    "type": "success"
-		}
-
-
-新增/修改接口：
-	POST /open/sysUser/saveOrUpdate
-    入参：
-    	public class AttractionSaveReq {
-
-		    private Long id;
-
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime gmtCreate;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime gmtModified;
-
-    /**
-     * 手机号
-     */
-    private String phone;
-
-
-    /**
-     * 邮箱
-     */
-    private String email;
-
-    /**
-     * 昵称
-     */
-    private String nickname;
-
-    /**
-     * 真实姓名
-     */
-    private String realName;
-
-    /**
-     * 头像
-     */
-    private String avatar;
-
-    /**
-     * 简介
-     */
-    private String description;
-
-    /**
-     * 角色id列表
-     */
-    private List<String> roleIds；
-		}
-
-删除接口：
-	POST /open/sysUser/remove
-	入参：
-		[] //id数组
-
-详情接口：
-  GET /open/sysUser/{id}
-  响应：
-        	public class AttractionSaveReq {
-
-		    private Long id;
-
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime gmtCreate;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime gmtModified;
-
-    /**
-     * 手机号
-     */
-    private String phone;
-
-
-    /**
-     * 邮箱
-     */
-    private String email;
-
-    /**
-     * 昵称
-     */
-    private String nickname;
-
-    /**
-     * 真实姓名
-     */
-    private String realName;
-
-    /**
-     * 头像
-     */
-    private String avatar;
-
-    /**
-     * 简介
-     */
-    private String description;
-
-    /**
-     * 角色id列表
-     */
-    private List<String> roleIds；
-		}
-
-
+每个步骤完成后，我们可以一起review并调整。请先开始第1步的项目结构分析，告诉我你的发现，然后我们再继续后续步骤。

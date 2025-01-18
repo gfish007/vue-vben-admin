@@ -8,7 +8,7 @@ import { useLowCodeStore } from '../../../../../store/modules/lowcode';
  * 文本组件渲染函数
  * @param props 组件属性，包含 node 属性
  */
-export const SpanRender = (props: {
+const SpanRender = (props: {
   isPreview?: boolean;
   node: ComponentInstance;
 }) => {
@@ -178,3 +178,5 @@ export const SpanRender = (props: {
     content.value,
   );
 };
+
+export default SpanRender;

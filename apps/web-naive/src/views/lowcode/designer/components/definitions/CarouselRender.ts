@@ -6,7 +6,7 @@ import { defineComponent, h } from 'vue';
 
 import { NCarousel } from 'naive-ui';
 
-export const CarouselRender = defineComponent({
+const CarouselRender = defineComponent({
   name: 'CarouselRender',
   props: {
     isPreview: {
@@ -121,3 +121,5 @@ export const CarouselRender = defineComponent({
     };
   },
 });
+
+export default CarouselRender;

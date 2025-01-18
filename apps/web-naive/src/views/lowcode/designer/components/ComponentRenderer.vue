@@ -8,7 +8,7 @@ import { NIcon, useMessage } from 'naive-ui';
 import { nanoid } from 'nanoid';
 
 import { useLowCodeStore } from '../../../../store/modules/lowcode';
-import * as componentRenders from './definitions';
+import components from './definitions';
 
 defineOptions({
   name: 'ComponentRenderer',
@@ -50,15 +50,20 @@ const isSelected = computed(() => {
 
 // 获取组件渲染器
 const componentRender = computed(() => {
-  const renderKey =
-    `${props.node.componentCode}Render` as keyof typeof componentRenders;
+  const renderPath = `./${props.node.componentCode}Render.ts`;
   console.log('【ComponentRenderer】尝试获取渲染器:', {
-    可用渲染器列表: Object.keys(componentRenders),
-    找到的渲染器: componentRenders[renderKey] ? '是' : '否',
-    渲染器Key: renderKey,
+    getRender结果: components.getRender(props.node.componentCode),
+    可用渲染器列表: Object.keys(components.modules.renders),
+    子组件列表: props.node.children?.map((child) => ({
+      ID: child.componentInstanceId,
+      类型: child.componentCode,
+    })),
+    渲染器模块: components.modules.renders[renderPath],
+    渲染器路径: renderPath,
+    组件ID: props.node.componentInstanceId,
     组件代码: props.node.componentCode,
   });
-  const render = componentRenders[renderKey];
+  const render = components.getRender(props.node.componentCode);
   return render ? markRaw(render) : null;
 });
 

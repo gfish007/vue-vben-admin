@@ -6,7 +6,7 @@ export interface CarouselItem {
   link: string;
 }
 
-export const Carousel: ComponentDefinition = {
+const Carousel: ComponentDefinition = {
   category: 'display',
   componentCode: 'Carousel',
   componentName: '轮播图',
@@ -106,3 +106,5 @@ export const Carousel: ComponentDefinition = {
     },
   },
 };
+
+export default Carousel;
