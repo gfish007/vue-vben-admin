@@ -5,7 +5,7 @@
 ```typescript
 // 使用 codebase_search 搜索并分析：
 - apps/web-naive/src/views/lowcode/designer/components/definitions/ 下的组件定义
-- 重点查看 Carousel.ts、Card.ts、List.ts 等展示类组件
+- 重点查看 Carousel.ts、Span.ts 等展示类组件
 - ComponentDefinition 和 Component 类型定义
 - Property.vue 的实现模式
 - Render.ts 的编写方式
