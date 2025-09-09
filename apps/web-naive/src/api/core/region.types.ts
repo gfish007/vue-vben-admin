@@ -23,12 +23,14 @@ export namespace RegionApi {
     title: string;
     coverUrl: string;
     description: string;
+    history: string; // 新增历史百科字段
     extendContent: Array<{ key: string; value: string }>;
     location: string;
     locationId: number;
     locationInfo: Record<string, any>;
+    pid?: number; // 父ID字段
     enable_status: number;
-    level: 'city' | 'country' | 'district' | 'province' | 'street';
+    level: 'city' | 'country' | 'district' | 'province' | 'street' | 'village';
   }
 
   /** 查询结果 */
@@ -45,11 +47,13 @@ export namespace RegionApi {
     title: string;
     coverUrl: string;
     description: string;
+    history: string; // 新增历史百科字段
     extendContent: Array<{ key: string; value: string }>;
     location: string;
     locationId: number;
     locationInfo: Record<string, any>;
-    level: 'city' | 'country' | 'district' | 'province' | 'street';
+    pid?: number; // 父ID字段
+    level: 'city' | 'country' | 'district' | 'province' | 'street'| 'village';
     // ... any other fields ...
   }
 }

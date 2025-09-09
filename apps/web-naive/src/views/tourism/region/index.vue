@@ -35,6 +35,7 @@ import {
   saveOrUpdateRegion,
 } from '#/api/core/region';
 import LocationMap from '#/components/LocationMap.vue';
+import TEditor from '#/components/TEditor.vue';
 import { useDynamicHeight } from '#/utils/heightUtils';
 import { purpleTheme } from '#/utils/theme';
 
@@ -77,9 +78,11 @@ const editingRecord = ref<Omit<RegionApi.RegionSaveReq, 'level'>>({
   coverUrl: '',
   description: '',
   extendContent: [{ key: '', value: '' }],
+  history: '',
   location: '',
   locationId: 0,
   locationInfo: {},
+  pid: undefined,
   title: '',
 });
 
@@ -132,12 +135,14 @@ const handleEdit = async (row: RegionApi.RegionRecord) => {
       extendContent: Array.isArray(restDetail.extendContent)
         ? restDetail.extendContent
         : [{ key: '', value: '' }],
+      history: restDetail.history ?? '',
       id: row.id,
       locationId: restDetail.locationId ?? 0,
       locationInfo:
         typeof restDetail.locationInfo === 'string'
           ? JSON.parse(restDetail.locationInfo)
           : restDetail.locationInfo || {},
+      pid: restDetail.pid ?? undefined,
     };
     showModal.value = true;
   } catch (error) {
@@ -354,9 +359,11 @@ const handleAdd = () => {
     coverUrl: '',
     description: '',
     extendContent: [{ key: '', value: '' }],
+    history: '',
     location: '',
     locationId: 0,
     locationInfo: {},
+    pid: undefined,
     title: '',
   };
   showModal.value = true;
@@ -554,6 +561,16 @@ onMounted(() => {
             type="textarea"
           />
         </NFormItem>
+        <NFormItem label="AI百科" path="history">
+          <TEditor v-model="editingRecord.history" />
+        </NFormItem>
+        <NFormItem label="父ID" path="pid">
+          <NInputNumber
+            v-model:value="editingRecord.pid"
+            :min="0"
+            placeholder="请输入父级区域ID"
+          />
+        </NFormItem>
         <NFormItem label="扩展内容" path="extendContent">
           <NDynamicInput
             v-model:value="editingRecord.extendContent"
@@ -697,7 +714,7 @@ onMounted(() => {
 
 .upload-progress {
   position: absolute;
-  right: 0;
+  right: 0; 
   bottom: 0;
   left: 0;
   z-index: 1;
