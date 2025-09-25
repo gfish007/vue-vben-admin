@@ -2,13 +2,18 @@ import type { FormRenderProps } from '../types';
 
 import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue';
 
-import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
+import {
+  breakpointsTailwind,
+  useBreakpoints,
+  useElementVisibility,
+} from '@vueuse/core';
 
 /**
  * 动态计算行数
  */
 export function useExpandable(props: FormRenderProps) {
   const wrapperRef = useTemplateRef<HTMLElement>('wrapperRef');
+  const isVisible = useElementVisibility(wrapperRef);
   const rowMapping = ref<Record<number, number>>({});
   // 是否已经计算过一次
   const isCalculated = ref(false);
@@ -22,6 +27,7 @@ export function useExpandable(props: FormRenderProps) {
     for (let index = 1; index <= rows; index++) {
       maxItem += mapping?.[index] ?? 0;
     }
+    // 保持一行
     return maxItem - 1 || 1;
   });
 
@@ -30,11 +36,13 @@ export function useExpandable(props: FormRenderProps) {
       () => props.showCollapseButton,
       () => breakpoints.active().value,
       () => props.schema?.length,
+      () => isVisible.value,
     ],
     async ([val]) => {
       if (val) {
         await nextTick();
         rowMapping.value = {};
+        isCalculated.value = false;
         await calculateRowMapping();
       }
     },

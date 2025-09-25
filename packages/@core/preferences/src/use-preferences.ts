@@ -28,6 +28,10 @@ function usePreferences() {
     return isDarkTheme(preferences.theme.mode);
   });
 
+  const locale = computed(() => {
+    return preferences.app.locale;
+  });
+
   const isMobile = computed(() => {
     return appPreferences.value.isMobile;
   });
@@ -79,6 +83,20 @@ function usePreferences() {
   );
 
   /**
+   * @zh_CN 是否为头部混合导航模式
+   */
+  const isHeaderMixedNav = computed(
+    () => appPreferences.value.layout === 'header-mixed-nav',
+  );
+
+  /**
+   * @zh_CN 是否为顶部通栏+侧边导航模式
+   */
+  const isHeaderSidebarNav = computed(
+    () => appPreferences.value.layout === 'header-sidebar-nav',
+  );
+
+  /**
    * @zh_CN 是否为混合导航模式
    */
   const isMixedNav = computed(
@@ -89,7 +107,13 @@ function usePreferences() {
    * @zh_CN 是否包含侧边导航模式
    */
   const isSideMode = computed(() => {
-    return isMixedNav.value || isSideMixedNav.value || isSideNav.value;
+    return (
+      isMixedNav.value ||
+      isSideMixedNav.value ||
+      isSideNav.value ||
+      isHeaderMixedNav.value ||
+      isHeaderSidebarNav.value
+    );
   });
 
   const sidebarCollapsed = computed(() => {
@@ -210,7 +234,9 @@ function usePreferences() {
     globalSearchShortcutKey,
     isDark,
     isFullContent,
+    isHeaderMixedNav,
     isHeaderNav,
+    isHeaderSidebarNav,
     isMixedNav,
     isMobile,
     isSideMixedNav,
@@ -218,6 +244,7 @@ function usePreferences() {
     isSideNav,
     keepAlive,
     layout,
+    locale,
     preferencesButtonPosition,
     sidebarCollapsed,
     theme,

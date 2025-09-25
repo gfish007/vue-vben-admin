@@ -1,14 +1,23 @@
 <script setup lang="ts">
+import type { GenericObject } from 'vee-validate';
 import type { ZodTypeAny } from 'zod';
 
-import type { FormRenderProps, FormSchema, FormShape } from '../types';
+import type {
+  FormCommonConfig,
+  FormRenderProps,
+  FormSchema,
+  FormShape,
+} from '../types';
 
 import { computed } from 'vue';
 
 import { Form } from '@vben-core/shadcn-ui';
-import { cn, isString } from '@vben-core/shared/utils';
-
-import { type GenericObject } from 'vee-validate';
+import {
+  cn,
+  isFunction,
+  isString,
+  mergeWithArrayOverride,
+} from '@vben-core/shared/utils';
 
 import { provideFormRenderProps } from './context';
 import { useExpandable } from './expandable';
@@ -17,16 +26,30 @@ import { getBaseRules, getDefaultValueInZodStack } from './helper';
 
 interface Props extends FormRenderProps {}
 
-const props = withDefaults(defineProps<Props>(), {
-  collapsedRows: 1,
-  commonConfig: () => ({}),
-  showCollapseButton: false,
-  wrapperClass: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
-});
+const props = withDefaults(
+  defineProps<Props & { globalCommonConfig?: FormCommonConfig }>(),
+  {
+    collapsedRows: 1,
+    commonConfig: () => ({}),
+    globalCommonConfig: () => ({}),
+    showCollapseButton: false,
+    wrapperClass: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
+  },
+);
 
 const emits = defineEmits<{
   submit: [event: any];
 }>();
+
+const wrapperClass = computed(() => {
+  const cls = ['flex'];
+  if (props.layout === 'inline') {
+    cls.push('flex-wrap gap-x-2');
+  } else {
+    cls.push(props.compact ? 'gap-x-2' : 'gap-x-4', 'flex-col grid');
+  }
+  return cn(...cls, props.wrapperClass);
+});
 
 provideFormRenderProps(props);
 
@@ -72,19 +95,27 @@ const formCollapsed = computed(() => {
 });
 
 const computedSchema = computed(
-  (): ({ commonComponentProps: Record<string, any> } & FormSchema)[] => {
+  (): (Omit<FormSchema, 'formFieldProps'> & {
+    commonComponentProps: Record<string, any>;
+    formFieldProps: Record<string, any>;
+  })[] => {
     const {
+      colon = false,
       componentProps = {},
       controlClass = '',
       disabled,
+      disabledOnChangeListener = true,
+      disabledOnInputListener = true,
+      emptyStateValue = undefined,
       formFieldProps = {},
       formItemClass = '',
       hideLabel = false,
       hideRequiredMark = false,
       labelClass = '',
       labelWidth = 100,
+      modelPropName = '',
       wrapperClass = '',
-    } = props.commonConfig;
+    } = mergeWithArrayOverride(props.commonConfig, props.globalCommonConfig);
     return (props.schema || []).map((schema, index) => {
       const keepIndex = keepFormItemIndex.value;
 
@@ -94,11 +125,27 @@ const computedSchema = computed(
           ? keepIndex <= index
           : false;
 
+      // 处理函数形式的formItemClass
+      let resolvedSchemaFormItemClass = schema.formItemClass;
+      if (isFunction(schema.formItemClass)) {
+        try {
+          resolvedSchemaFormItemClass = schema.formItemClass();
+        } catch (error) {
+          console.error('Error calling formItemClass function:', error);
+          resolvedSchemaFormItemClass = '';
+        }
+      }
+
       return {
+        colon,
         disabled,
+        disabledOnChangeListener,
+        disabledOnInputListener,
+        emptyStateValue,
         hideLabel,
         hideRequiredMark,
         labelWidth,
+        modelPropName,
         wrapperClass,
         ...schema,
         commonComponentProps: componentProps,
@@ -112,7 +159,7 @@ const computedSchema = computed(
           'flex-shrink-0',
           { hidden },
           formItemClass,
-          schema.formItemClass,
+          resolvedSchemaFormItemClass,
         ),
         labelClass: cn(labelClass, schema.labelClass),
       };
@@ -123,7 +170,7 @@ const computedSchema = computed(
 
 <template>
   <component :is="formComponent" v-bind="formComponentProps">
-    <div ref="wrapperRef" :class="wrapperClass" class="grid">
+    <div ref="wrapperRef" :class="wrapperClass">
       <template v-for="cSchema in computedSchema" :key="cSchema.fieldName">
         <!-- <div v-if="$slots[cSchema.fieldName]" :class="cSchema.formItemClass">
           <slot :definition="cSchema" :name="cSchema.fieldName"> </slot>

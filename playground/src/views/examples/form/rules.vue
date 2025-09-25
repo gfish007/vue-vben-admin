@@ -3,7 +3,7 @@ import { Page } from '@vben/common-ui';
 
 import { Button, Card, message } from 'ant-design-vue';
 
-import { useVbenForm, z } from '#/adapter';
+import { useVbenForm, z } from '#/adapter/form';
 
 const [Form, formApi] = useVbenForm({
   // 所有表单项共用，可单独在表单内覆盖
@@ -150,7 +150,9 @@ const [Form, formApi] = useVbenForm({
           default: () => ['我已阅读并同意'],
         };
       },
-      rules: 'selectRequired',
+      rules: z.boolean().refine((value) => value, {
+        message: '请勾选',
+      }),
     },
     {
       component: 'DatePicker',
@@ -174,6 +176,47 @@ const [Form, formApi] = useVbenForm({
       fieldName: 'password',
       label: '密码',
       rules: 'required',
+    },
+    {
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入',
+      },
+      fieldName: 'input-blur',
+      formFieldProps: {
+        validateOnChange: false,
+        validateOnModelUpdate: false,
+      },
+      help: 'blur时才会触发校验',
+      label: 'blur触发',
+      rules: 'required',
+    },
+    {
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入',
+      },
+      fieldName: 'input-async',
+      label: '异步校验',
+      rules: z
+        .string()
+        .min(3, '用户名至少需要3个字符')
+        .refine(
+          async (username) => {
+            // 假设这是一个异步函数，模拟检查用户名是否已存在
+            const checkUsernameExists = async (
+              username: string,
+            ): Promise<boolean> => {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              return username === 'existingUser';
+            };
+            const exists = await checkUsernameExists(username);
+            return !exists;
+          },
+          {
+            message: '用户名已存在',
+          },
+        ),
     },
   ],
   // 大屏一行显示3个，中屏一行显示2个，小屏一行显示1个

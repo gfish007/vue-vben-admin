@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { message } from 'ant-design-vue';
 
-import { useVbenForm, z } from '#/adapter';
+import { useVbenForm, z } from '#/adapter/form';
 
 const [Form] = useVbenForm({
   // 所有表单项共用，可单独在表单内覆盖
@@ -15,6 +15,7 @@ const [Form] = useVbenForm({
   handleSubmit: onSubmit,
   // 垂直布局，label和input在不同行，值为vertical
   // 水平布局，label和input在同一行
+  scrollToFirstError: true,
   layout: 'horizontal',
   schema: [
     {

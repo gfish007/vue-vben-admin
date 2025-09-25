@@ -1,6 +1,6 @@
 {
-  "name": "vben-admin-pro",
-  "version": "5.3.0",
+  "name": "vben-admin-monorepo",
+  "version": "5.5.9",
   "private": true,
   "keywords": [
     "monorepo",
@@ -28,7 +28,7 @@
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build",
     "build:analyze": "turbo build:analyze",
     "build:antd": "pnpm run build --filter=@vben/web-antd",
-    "build:docker": "./build-local-docker-image.sh",
+    "build:docker": "./scripts/deploy/build-local-docker-image.sh",
     "build:docs": "pnpm run build --filter=@vben/docs",
     "build:ele": "pnpm run build --filter=@vben/web-ele",
     "build:naive": "pnpm run build --filter=@vben/web-naive",
@@ -39,7 +39,7 @@
     "check:cspell": "cspell lint **/*.ts **/README.md .changeset/*.md --no-progress",
     "check:dep": "vsh check-dep",
     "check:type": "turbo run typecheck",
-    "clean": "vsh clean",
+    "clean": "node ./scripts/clean.mjs",
     "commit": "czg",
     "dev": "turbo-run dev",
     "dev:antd": "pnpm -F @vben/web-antd run dev",
@@ -49,16 +49,16 @@
     "dev:play": "pnpm -F @vben/playground run dev",
     "format": "vsh lint --format",
     "lint": "vsh lint",
-    "postinstall": "turbo run stub",
+    "postinstall": "pnpm -r run stub --if-present",
     "preinstall": "npx only-allow pnpm",
-    "prepare": "is-ci || husky",
     "preview": "turbo-run preview",
     "publint": "vsh publint",
     "reinstall": "pnpm clean --del-lock && pnpm install",
     "test:unit": "vitest run --dom",
     "test:e2e": "turbo run test:e2e",
-    "update:deps": "pnpm update --latest --recursive",
-    "version": "pnpm exec changeset version && pnpm install --no-frozen-lockfile"
+    "update:deps": "npx taze -r -w",
+    "version": "pnpm exec changeset version && pnpm install --no-frozen-lockfile",
+    "catalog": "pnpx codemod pnpm/catalog"
   },
   "devDependencies": {
     "@changesets/changelog-github": "catalog:",
@@ -81,9 +81,8 @@
     "cross-env": "catalog:",
     "cspell": "catalog:",
     "happy-dom": "catalog:",
-    "husky": "catalog:",
     "is-ci": "catalog:",
-    "lint-staged": "catalog:",
+    "lefthook": "catalog:",
     "playwright": "catalog:",
     "rimraf": "catalog:",
     "tailwindcss": "catalog:",
@@ -97,9 +96,9 @@
   },
   "engines": {
     "node": ">=20.10.0",
-    "pnpm": ">=9.5.0"
+    "pnpm": ">=9.12.0"
   },
-  "packageManager": "pnpm@9.11.0",
+  "packageManager": "pnpm@10.14.0",
   "pnpm": {
     "peerDependencyRules": {
       "allowedVersions": {
@@ -107,10 +106,12 @@
       }
     },
     "overrides": {
-      "@ctrl/tinycolor": "4.1.0",
-      "clsx": "2.1.1",
-      "pinia": "2.2.2",
-      "vue": "3.5.7"
+      "@ast-grep/napi": "catalog:",
+      "@ctrl/tinycolor": "catalog:",
+      "clsx": "catalog:",
+      "esbuild": "0.25.3",
+      "pinia": "catalog:",
+      "vue": "catalog:"
     },
     "neverBuiltDependencies": [
       "canvas",

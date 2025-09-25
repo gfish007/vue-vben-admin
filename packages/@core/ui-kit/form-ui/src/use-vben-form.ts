@@ -24,14 +24,15 @@ export function useVbenForm<
   const Form = defineComponent(
     (props: VbenFormProps, { attrs, slots }) => {
       onBeforeUnmount(() => {
-        api.unmounted();
+        api.unmount();
       });
+      api.setState({ ...props, ...attrs });
       return () =>
         h(VbenUseForm, { ...props, ...attrs, formApi: extendedApi }, slots);
     },
     {
-      inheritAttrs: false,
       name: 'VbenUseForm',
+      inheritAttrs: false,
     },
   );
   // Add reactivity support
