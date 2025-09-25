@@ -1,0 +1,32 @@
+表设计
+CREATE TABLE `travel_region_spot` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `gmt_create` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `delete_flag` tinyint(1) NOT NULL DEFAULT '0' COMMENT '删除标识1是0否',
+  `adcode` bigint DEFAULT NULL COMMENT '市id',
+  `pcode` bigint DEFAULT NULL COMMENT '省code',
+  `town_code` bigint DEFAULT NULL COMMENT '城市id',
+  `town_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '城镇名',
+  `sort_no` int DEFAULT '999' COMMENT '排序',
+  `score` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '评分',
+  `spot_type` enum('FOOD','ACTIVITY','HOTEL','ATTRACTION') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '景点类型 FOOD ACTIVITY HOTEL ATTRACTION',
+  `poi_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'poiid',
+  `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '标题',
+  `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '地址',
+  `tel` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '手机号',
+  `category` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '标签',
+  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'POI类型',
+  `location` json DEFAULT NULL COMMENT '位置信息',
+  `ad_info` json DEFAULT NULL COMMENT '行政区划信息',
+  `business_info` json DEFAULT NULL COMMENT '业务信息',
+  `image_urls` json DEFAULT NULL COMMENT '图片列表',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `unix_poiid` (`poi_id`) USING BTREE,
+  KEY `idx_adcode_type_score` (`adcode`,`spot_type`,`score`) USING BTREE,
+  KEY `idx_towncode_type` (`town_code`,`spot_type`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1865411284552519707 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='区地点表';
+
+实际存储内容：
+INSERT INTO `travel_system`.`travel_region_spot` (`id`, `gmt_create`, `gmt_modified`, `delete_flag`, `adcode`, `pcode`, `town_code`, `town_name`, `sort_no`, `score`, `spot_type`, `poi_id`, `title`, `address`, `tel`, `category`, `type`, `location`, `ad_info`, `business_info`, `image_urls`) VALUES (1858520750231785484, '2024-11-18 22:40:51', '2024-11-18 22:44:03', 0, 330105, 330000, 330105012, '天水街道', 999, '2.9', 'HOTEL', 'B023B084F5', '北海假日酒店', '中山北路439号杭州医药大楼', NULL, '住宿服务;宾馆酒店;三星级宾馆', '100104', '{\"lat\": 30.269493, \"lng\": 120.166794}', '{\"city\": \"杭州市\", \"adcode\": \"330105\", \"district\": \"拱墅区\", \"province\": \"浙江省\"}', '{\"tel\": \"0571-85265101\", \"rating\": \"2.9\"}', '[\"http://store.is.autonavi.com/showpic/32bf3b56ddefd195ca8048a1b055f3e4\", \"http://store.is.autonavi.com/showpic/ced16a834ad356929a2ffcc54a3afd96\", \"http://store.is.autonavi.com/showpic/6387f8ab2aa7e5cfc2933cd9c6d25dec\"]');
+1858520669504016392	2024-11-18 22:40:32	2024-11-18 22:44:03	0	330105	330000	330105018	东新街道	999	4.8	FOOD	B0G0RADQE6	李白图书馆餐厅(新天地店)	东文街51号华唐铭座IN1-17号		餐饮服务;中餐厅;浙江菜	050106	{"lat": 30.323672, "lng": 120.183072}	{"city": "杭州市", "adcode": "330105", "district": "拱墅区", "province": "浙江省"}	{"tel": "13325916050", "cost": "136.00", "rating": "4.8", "opentime_week": "【正常】全年10:00-21:30", "opentime_today": "10:00-21:30"}	["http://store.is.autonavi.com/showpic/e1f87d8ae979555873102f484e650982", "https://aos-comment.amap.com/B0G0RADQE6/comment/c7d627dd752bc1e6a5a8236d48a5cdc4_2048_2048_80.jpg", "http://store.is.autonavi.com/showpic/25a6888a0f807bf95031d1f9a149bef9"]

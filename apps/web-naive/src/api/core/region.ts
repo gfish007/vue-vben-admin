@@ -36,3 +36,31 @@ export async function deleteRegions(ids: number[]) {
 export function doTopRegion(regionId: number) {
   return requestClient.put<void>(`/open/region/doTop/${regionId}`);
 }
+
+/**
+ * 发布区域
+ */
+export async function publishRegion(regionId: number) {
+  return requestClient.put<void>(`/open/region/publish/${regionId}`);
+}
+
+/**
+ * 撤回区域
+ */
+export async function rollbackRegion(regionId: number) {
+  return requestClient.put<void>(`/open/region/rollback/${regionId}`);
+}
+
+/**
+ * 启用区域
+ */
+export async function enableRegion(regionId: number) {
+  return requestClient.put<void>(`/open/regionSpot/enable/${regionId}`);
+}
+
+/**
+ * 禁用区域
+ */
+export async function disableRegion(regionId: number) {
+  return requestClient.put<void>(`/open/regionSpot/disable/${regionId}`);
+}

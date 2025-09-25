@@ -5,11 +5,12 @@ import { requestClient } from '#/api/request';
 /**
  * 查询景点列表
  */
-export async function queryAttractionList(params: AttractionApi.QueryParams) {
-  return requestClient.post<AttractionApi.QueryResult>(
-    '/open/attraction/list',
-    params,
-  );
+export async function queryAttractionList(params: AttractionApi.QueryParams & { regionId?: string }) {
+  const { regionId, ...queryParams } = params;
+  const url = (regionId !== undefined && regionId !== null) 
+    ? `/open/attraction/list/${regionId}` 
+    : '/open/attraction/list';
+  return requestClient.post<AttractionApi.QueryResult>(url, queryParams);
 }
 
 /**

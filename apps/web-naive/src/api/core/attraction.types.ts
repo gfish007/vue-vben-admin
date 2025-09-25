@@ -8,9 +8,10 @@ export namespace AttractionApi {
     queryBody: {
       enableStatus?: boolean;
       publishStatus?: 'PENDING' | 'PUBLISH';
-      regionId?: number;
+      regionId?: string;
       title?: string;
     };
+    regionId?: string; // 添加regionId参数
   }
 
   /** 景点记录 */

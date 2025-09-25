@@ -1,0 +1,84 @@
+对接下商户接口相关内容：
+有点意外，接口的uri我写错了
+更新或新增：POST /open/recommendation/saveOrUpdate
+列表：POST /open/recommendation/list   查询条件：标题，有效时间范围，状态
+删除：POST  /open/recommendation/remove  id列表
+禁用/启用：POST  /recommendation/popup/status   id 、状态
+
+弹窗对象：
+public class PopupWindow {
+
+    private String id;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime gmtModified;
+
+    /**
+     * 弹窗标题
+     */
+    private String title;
+
+    /**
+     * 弹窗内容(支持HTML)
+     */
+    private String content;
+
+    /**
+     * 弹窗图片URL
+     */
+    private String imageUrl;
+
+    /**
+     * 跳转类型(0:不跳转 1:内部页面 2:H5链接 3:小程序路径)
+     */
+    private Integer jumpType;
+
+    /**
+     * 跳转地址
+     */
+    private String jumpUrl;
+
+    /**
+     * 展示开始时间
+     */
+    private LocalDateTime startTime;
+
+    /**
+     * 展示结束时间
+     */
+    private LocalDateTime endTime;
+
+    /**
+     * 优先级(数字越大优先级越高)
+     */
+    private Integer priority;
+
+    /**
+     * 状态(0:禁用 1:启用)
+     */
+    private Integer status;
+
+    /**
+     * 展示频率(1:每次 2:每日首次 3:仅一次)
+     */
+    private Integer showFrequency;
+
+    /**
+     * 目标用户(all:所有用户 new:新用户 vip:VIP用户)
+     */
+    private String targetUsers;
+
+    /**
+     * 平台(all:全平台 ios:仅iOS android:仅Android)
+     */
+    private String platform;
+
+
+}

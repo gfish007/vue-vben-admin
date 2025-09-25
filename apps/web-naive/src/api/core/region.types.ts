@@ -17,6 +17,18 @@ export namespace RegionApi {
     };
   }
 
+  /** 禁用区域 */
+  export interface DisableRegion {
+    northeast: {
+      lat: number;
+      lng: number;
+    };
+    southwest: {
+      lat: number;
+      lng: number;
+    };
+  }
+
   /** 区域记录 */
   export interface RegionRecord {
     id: number;
@@ -28,6 +40,7 @@ export namespace RegionApi {
     location: string;
     locationId: number;
     locationInfo: Record<string, any>;
+    disableRegion?: DisableRegion | null; // 添加禁用区域字段
     pid?: number; // 父ID字段
     enable_status: number;
     level: 'city' | 'country' | 'district' | 'province' | 'street' | 'village';
@@ -52,6 +65,7 @@ export namespace RegionApi {
     location: string;
     locationId: number;
     locationInfo: Record<string, any>;
+    disableRegion?: DisableRegion | null; // 添加禁用区域字段
     pid?: number; // 父ID字段
     level: 'city' | 'country' | 'district' | 'province' | 'street'| 'village';
     // ... any other fields ...

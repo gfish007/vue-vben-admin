@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { FormRules } from 'naive-ui';
 
+import type { UserApi } from '#/api/app/user.types';
+
 import { h, onMounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
@@ -13,7 +15,9 @@ import {
   NDatePicker,
   NForm,
   NFormItem,
+  NImage,
   NInput,
+  NSelect,
   NSpace,
   useMessage,
 } from 'naive-ui';
@@ -24,27 +28,32 @@ import { useDynamicHeight } from '#/utils/heightUtils';
 const message = useMessage();
 
 // 查询条件
-const queryForm = reactive({
-  appid: '',
+const queryForm = reactive<UserApi.QueryParams['queryBody']>({
+  appid: undefined,
   enabled: null,
-  gmtCreate: null,
-  gmtLogin: null,
+  gmtCreateBegin: null,
+  gmtCreateEnd: null,
+  gmtLoginBegin: null,
+  gmtLoginEnd: null,
   nickname: '',
   phone: '',
 });
 
 // 表格数据
-const tableData = ref<any[]>([]);
+const tableData = ref<UserApi.UserRecord[]>([]);
 const loading = ref(false);
 const pagination = reactive({
   page: 1,
   pageSize: 10,
   total: 0,
+  itemCount: 0,
+  showSizePicker: true,
+  showQuickJumper: true,
+  pageSizes: [10, 20, 50],
 });
 
 // 表单规则
 const rules: FormRules = {
-  appid: { message: '请输入appid', required: true, trigger: 'blur' },
   nickname: { message: '请输入用户昵称', required: true, trigger: 'blur' },
   phone: { message: '请输入手机号', required: true, trigger: 'blur' },
 };
@@ -65,22 +74,21 @@ const fetchData = async () => {
       },
       queryBody: {
         ...queryForm,
-        gmtCreateBegin: queryForm.gmtCreate
-          ? new Date(queryForm.gmtCreate[0])
-          : null,
-        gmtCreateEnd: queryForm.gmtCreate
-          ? new Date(queryForm.gmtCreate[1])
-          : null,
-        gmtLoginBegin: queryForm.gmtLogin
-          ? new Date(queryForm.gmtLogin[0])
-          : null,
-        gmtLoginEnd: queryForm.gmtLogin
-          ? new Date(queryForm.gmtLogin[1])
-          : null,
+        gmtCreateBegin: queryForm.gmtCreateBegin ? new Date(queryForm.gmtCreateBegin) : undefined,
+        gmtCreateEnd: queryForm.gmtCreateEnd ? new Date(queryForm.gmtCreateEnd) : undefined,
+        gmtLoginBegin: queryForm.gmtLoginBegin ? new Date(queryForm.gmtLoginBegin) : undefined,
+        gmtLoginEnd: queryForm.gmtLoginEnd ? new Date(queryForm.gmtLoginEnd) : undefined,
       },
     });
     tableData.value = result.records;
     pagination.total = result.total;
+    pagination.itemCount = result.total;
+    pagination.pageSize = result.size;
+    // 确保页码不会超过总页数
+    const totalPages = Math.ceil(result.total / pagination.pageSize);
+    if (pagination.page > totalPages && totalPages > 0) {
+      pagination.page = totalPages;
+    }
   } catch {
     message.error('获取数据失败');
   } finally {
@@ -90,25 +98,42 @@ const fetchData = async () => {
 
 // 表格列定义
 const columns = [
-  { fixed: 'center', hidden: true, key: 'id', title: 'ID', width: 60 },
-  { fixed: 'center', key: 'nickname', title: '昵称', width: 180 },
-  { fixed: 'center', key: 'phoneNumber', title: '手机号', width: 180 },
-  { fixed: 'center', key: 'appid', title: '小程序id', width: 180 },
-  { fixed: 'center', key: 'openid', title: 'openid', width: 180 },
-  { fixed: 'center', key: 'gmtCreate', title: '创建时间', width: 180 },
-  { fixed: 'center', key: 'gmtModified', title: '更新时间', width: 180 },
-  {
-    fixed: 'center',
-    key: 'enabled',
-    render: (row: any) => (row.enabled ? '正常' : '禁用'),
-    title: '状态',
-    width: 100,
+  { 
+    key: 'avatar', 
+    title: '头像', 
+    width: 80,
+    render: (row: UserApi.UserRecord) => {
+      return h(NImage, {
+        src: row.avatar || '',
+        alt: row.nickname,
+        width: 40,
+        height: 40,
+        style: {
+          borderRadius: '50%',
+        },
+        onError: (e: any) => {
+          e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGNUY1RjUiLz4KPHBhdGggZD0iTTIwIDExLjVDMTguMDQ0NCAxMS41IDE2LjQ1IDEzLjA5NDQgMTYuNDUgMTVDMTYuNDUgMTYuOTA1NiAxOC4wNDQ0IDE4LjUgMjAgMTguNUMyMS45NTU2IDE4LjUgMjMuNTUgMTYuOTA1NiAyMy41NSAxNUMyMy41NSAxMy4wOTQ0IDIxLjk1NTYgMTEuNSAyMCAxMS41WiIgZmlsbD0iIzhDOEM4QyIvPgo8cGF0aCBkPSJNMTUuNSAyNC41QzE1LjUgMjMuNjc5NSAxNS44MjA1IDIzLjM1ODkgMTYuMjQyNiAyMi45MzY4QzE2LjY2NDcgMjIuNTE0NyAxNy4yMjQ0IDIyLjE5NDEgMTcuODQ3OSAyMi4xOTQxSDIyLjE1MjFDMjIuNzc1NiAyMi4xOTQxIDIzLjMzNTMgMjIuNTE0NyAyMy43NTc0IDIyLjkzNjhDMjQuMTc5NSAyMy4zNTg5IDI0LjUgMjMuNjc5NSAyNC41IDI0LjVDMjQuNSAyNS4wMzA0IDI0LjI4OTMgMjUuNTM5MSAyMy45MTQyIDI1LjkxNDJDMjMuNTM5MSAyNi4yODkzIDIzLjAzMDQgMjYuNSAyMi41IDI2LjVIMTcuNUMxNi45Njk2IDI2LjUgMTYuNDYwOSAyNi4yODkzIDE2LjA4NTggMjUuOTE0MkMxNS43MTA3IDI1LjUzOTEgMTUuNSAyNS4wMzA0IDE1LjUgMjQuNVoiIGZpbGw9IiM4QzhDOEMiLz4KPC9zdmc+';
+        }
+      });
+    }
   },
-
+  { key: 'nickname', title: '昵称', width: 120 },
+  { key: 'phone', title: '手机号', width: 120 },
+  { key: 'appid', title: '小程序id', width: 150 },
+  { key: 'openid', title: 'openid', width: 180 },
+  { key: 'gmtCreate', title: '创建时间', width: 180 },
+  { key: 'gmtModified', title: '更新时间', width: 180 },
+  { key: 'gmtLogin', title: '最近登录', width: 180 },
+  {
+    key: 'enabled',
+    render: (row: UserApi.UserRecord) => (row.enabled === 1 ? '正常' : '禁用'),
+    title: '状态',
+    width: 80,
+  },
   {
     fixed: 'right',
     key: 'actions',
-    render: (row: any) => {
+    render: (row: UserApi.UserRecord) => {
       return h(
         NButtonGroup,
         { size: 'small' },
@@ -128,9 +153,9 @@ const columns = [
               {
                 loading: deleteLoading.value,
                 onClick: () => handleToggleStatus(row),
-                type: row.enabled ? 'error' : 'success',
+                type: row.enabled === 1 ? 'error' : 'success',
               },
-              { default: () => (row.enabled ? '禁用' : '启用') },
+              { default: () => (row.enabled === 1 ? '禁用' : '启用') },
             ),
           ],
         },
@@ -149,12 +174,14 @@ const handleSearch = () => {
 
 // 处理重置
 const handleReset = () => {
-  Object.keys(queryForm).forEach((key) => {
-    queryForm[key] = null;
-  });
-  console.log(queryForm);
-  queryForm.gmtCreate = null;
-  queryForm.gmtLogin = null;
+  queryForm.appid = undefined;
+  queryForm.enabled = null;
+  queryForm.gmtCreateBegin = null;
+  queryForm.gmtCreateEnd = null;
+  queryForm.gmtLoginBegin = null;
+  queryForm.gmtLoginEnd = null;
+  queryForm.nickname = '';
+  queryForm.phone = '';
   handleSearch();
 };
 
@@ -164,17 +191,24 @@ const handlePageChange = (page: number) => {
   fetchData();
 };
 
+// 处理分页大小变化
+const handlePageSizeChange = (pageSize: number) => {
+  pagination.pageSize = pageSize;
+  pagination.page = 1;
+  fetchData();
+};
+
 // 处理明细
-const handleDetail = (row: any) => {
+const handleDetail = (row: UserApi.UserRecord) => {
   // 这里可以实现查看用户详情的逻辑
   message.info(`查看用户 ${row.nickname} 的详情`);
 };
 
 // 处理启用/禁用
-const handleToggleStatus = async (row: any) => {
+const handleToggleStatus = async (row: UserApi.UserRecord) => {
   deleteLoading.value = true;
   try {
-    if (row.enabled) {
+    if (row.enabled === 1) {
       await disableUser(row.id);
       message.success('禁用成功');
     } else {
@@ -205,98 +239,123 @@ onMounted(() => {
 
 <template>
   <Page description="统计用户信息" title="用户统计">
-    <NCard ref="queryCardRef" class="query-card mb-4 p-2">
-      <NForm :model="queryForm" class="flex h-full items-center" inline>
-        <NSpace
-          :size="[24, 0]"
-          align="center"
-          class="w-full"
-          justify="space-between"
-        >
-          <NSpace :size="24" align="center" wrap>
-            <!-- <NFormItem
-              class="mb-0 flex items-center"
-              label="appid"
-              label-placement="left"
-              label-width="96"
-            >
-              <NInput v-model:value="queryForm.appid" class="w-52" />
-            </NFormItem> -->
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="手机号"
-              label-placement="left"
-              label-width="96"
-            >
-              <NInput v-model:value="queryForm.phone" class="w-52" />
-            </NFormItem>
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="昵称"
-              label-placement="left"
-              label-width="96"
-            >
-              <NInput v-model:value="queryForm.nickname" class="w-52" />
-            </NFormItem>
-            <!-- <NFormItem
-              class="mb-0 flex items-center"
-              label="状态"
-              label-placement="left"
-              label-width="96"
-            >
-              <NInput v-model:value="queryForm.enabled" class="w-52" />
-            </NFormItem> -->
-            <NFormItem
-              class="mb-0 flex items-center"
-              label="注册时间"
-              label-placement="left"
-              label-width="96"
-            >
-              <NDatePicker
-                v-model:value="queryForm.gmtCreate"
-                class="w-52"
-                clearable
-                type="daterange"
-              />
-            </NFormItem>
-            <!-- <NFormItem
-              class="mb-0 flex items-center"
-              label="最近登录时间"
-              label-placement="left"
-              label-width="96"
-            >
-              <NDatePicker
-                v-model:value="queryForm.gmtLogin"
-                class="w-52"
-                clearable
-                type="daterange"
-              />
-            </NFormItem> -->
-            <NButtonGroup>
+    <div ref="queryCardRef" class="w-full">
+      <NCard class="query-card">
+        <NForm :model="queryForm" inline>
+          <NSpace
+            :size="[24, 0]"
+            align="center"
+            justify="space-between"
+            style="width: 100%"
+          >
+            <NSpace :size="24" align="center">
+              <NFormItem label="手机号" label-placement="left">
+                <NInput v-model:value="queryForm.phone" style="width: 150px" />
+              </NFormItem>
+              <NFormItem label="昵称" label-placement="left">
+                <NInput v-model:value="queryForm.nickname" style="width: 150px" />
+              </NFormItem>
+              <NFormItem label="状态" label-placement="left">
+                <NSelect
+                  v-model:value="queryForm.enabled"
+                  :options="[
+                    { label: '正常', value: 1 },
+                    { label: '禁用', value: 0 },
+                  ]"
+                  clearable
+                  style="width: 120px"
+                />
+              </NFormItem>
+              <NFormItem label="注册时间" label-placement="left">
+                <NDatePicker
+                  v-model:value="queryForm.gmtCreateBegin"
+                  placeholder="开始时间"
+                  style="width: 150px"
+                  type="date"
+                />
+                <span style="margin: 0 8px">-</span>
+                <NDatePicker
+                  v-model:value="queryForm.gmtCreateEnd"
+                  placeholder="结束时间"
+                  style="width: 150px"
+                  type="date"
+                />
+              </NFormItem>
+            </NSpace>
+            <NSpace>
               <NButton type="primary" @click="handleSearch">搜索</NButton>
               <NButton @click="handleReset">重置</NButton>
-            </NButtonGroup>
+            </NSpace>
           </NSpace>
-        </NSpace>
-      </NForm>
-    </NCard>
+        </NForm>
+      </NCard>
+    </div>
 
-    <NCard class="table-card flex flex-col overflow-hidden">
+    <NCard>
       <NDataTable
         :columns="columns"
         :data="tableData"
         :loading="loading"
         :max-height="`${tableHeight}px`"
         :min-height="`${tableHeight}px`"
-        :pagination="pagination"
-        :scroll-x="900"
-        class="flex-1 overflow-auto"
-        flex-height
+        :scroll-x="1300"
         striped
-        @update:page="handlePageChange"
       />
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+        <div>共 {{ pagination.itemCount }} 条记录</div>
+        <NPagination
+          v-model:page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :item-count="pagination.itemCount"
+          :page-sizes="pagination.pageSizes"
+          show-size-picker
+          show-quick-jumper
+          @update:page="handlePageChange"
+          @update:page-size="handlePageSizeChange"
+        />
+      </div>
     </NCard>
   </Page>
 </template>
 
-<style scoped></style>
+<style scoped>
+.query-card {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.query-card :deep(.n-form) {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.query-card :deep(.n-form-item) {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.query-card :deep(.n-form-item-label) {
+  height: auto;
+  padding: 0 8px 0 0;
+  line-height: normal;
+}
+
+.query-card :deep(.n-form-item-blank) {
+  display: flex;
+  align-items: center;
+}
+
+.query-card :deep(.n-button-group) {
+  display: flex;
+}
+
+.query-card :deep(.n-button-group .n-button) {
+  margin-right: 0;
+}
+
+.n-data-table {
+  flex: 1;
+}
+</style>

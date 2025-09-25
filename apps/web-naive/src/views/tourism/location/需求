@@ -1,0 +1,77 @@
+对接下接口相关内容：
+
+更新或新增：POST /open/location/saveOrUpdate , 省市区镇的下拉可以参考：@src/views/statistics/merchant/index.vue 弹窗的省市区镇实现。
+列表：POST /open/location/list   查询条件：标题，有效时间范围，状态
+删除：POST  /open/location/remove  id列表
+更新状态：POST  /location/popup/status   id 、状态
+
+地点对象：
+public class Location {
+
+    private String id;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
+
+    /**
+     * 最后更新时间
+     */
+    private LocalDateTime gmtModified;
+
+    /**
+     * 省
+     */
+    private String province;
+
+    /**
+     * 省编码
+     */
+    private String provinceCode;
+
+    /**
+     * 市
+     */
+    private String city;
+
+    /**
+     * 市编码
+     */
+    private String cityCode;
+
+    /**
+     * 区
+     */
+    private String district;
+
+    /**
+     * 区编码
+     */
+    private String districtCode;
+
+    /**
+     * 镇
+     */
+    private String town;
+
+    /**
+     * 镇编码
+     */
+    private String townCode;
+
+    /**
+     * 状态 INIT：未开放  PROCESSING：收集中  FINISHED：已完成
+     */
+    private String state;
+
+    /**
+     * 缩略图
+     */
+    private String imageUrl;
+
+    /**
+     * 排序
+     */
+    private Integer sortOrder;
+}

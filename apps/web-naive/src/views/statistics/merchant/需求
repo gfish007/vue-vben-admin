@@ -1,0 +1,179 @@
+对接下商户接口相关内容：
+更新或新增：POST /open/merchant/saveOrUpdate
+列表：POST /open/merchant/list   查询条件：商户名，商户编码，状态，审核状态，是否可接单，审核时间
+删除：POST  /open/merchant/remove  id列表
+详情：GET  /open/merchant/{id}
+审核：POST  /open/merchant/audit   id 、审核状态
+禁用/启用：POST  /open/merchant/status   id 、状态
+
+商户对象：
+public class Merchant  {
+
+    private String id;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
+
+    /**
+     * 最后更新时间
+     */
+    private LocalDateTime gmtModified;
+
+    /**
+     * 商户编号(系统生成唯一标识)
+     */
+    private String merchantCode;
+
+    /**
+     * 关联用户ID
+     */
+    private Long userId;
+
+    /**
+     * 商户名称
+     */
+    private String name;
+
+    /**
+     * 商户简称
+     */
+    private String shortName;
+
+    /**
+     * 商户类型(1:企业 2:个体 3:个人)
+     */
+    private Integer type;
+
+    /**
+     * 状态(0:未激活 1:正常 2:禁用 3:注销)
+     */
+    private Integer status;
+
+    /**
+     * 审核状态(0:待审核 1:审核通过 2:审核驳回)
+     */
+    private Integer auditStatus;
+
+    /**
+     * 审核意见
+     */
+    private String auditOpinion;
+
+    /**
+     * 商户等级(1-5)
+     */
+    private Integer level;
+
+    /**
+     * 商户logo URL
+     */
+    private String logoUrl;
+
+    /**
+     * 行业分类ID
+     */
+    private Integer industryId;
+
+    /**
+     * 联系人姓名
+     */
+    private String contactName;
+
+    /**
+     * 联系电话
+     */
+    private String contactPhone;
+
+    /**
+     * 微信号
+     */
+    private String wchat;
+
+    /**
+     * 联系邮箱
+     */
+    private String contactEmail;
+
+    /**
+     * 省
+     */
+    private String province;
+
+    /**
+     * 市
+     */
+    private String city;
+
+    /**
+     * 区
+     */
+    private String district;
+
+    /**
+     * 详细地址
+     */
+    private String address;
+
+    /**
+     * 经度
+     */
+    private BigDecimal longitude;
+
+    /**
+     * 纬度
+     */
+    private BigDecimal latitude;
+
+    /**
+     * 营业执照号
+     */
+    private String businessLicenseNo;
+
+    /**
+     * 营业执照图片
+     */
+    private String businessLicenseImg;
+
+    /**
+     * 法人姓名
+     */
+    private String legalPerson;
+
+    /**
+     * 法人身份证号
+     */
+    private String legalPersonIdCard;
+
+    /**
+     * 身份证正面
+     */
+    private String legalPersonIdCardFront;
+
+    /**
+     * 身份证反面
+     */
+    private String legalPersonIdCardBack;
+
+    /**
+     * 商户介绍
+     */
+    private String introduction;
+
+    /**
+     * 营业时间
+     */
+    private String businessHours;
+
+    /**
+     * 是否可接单(1:可接单 0:暂停)
+     */
+    private Integer available;
+
+    /**
+     * 审核通过时间
+     */
+    private LocalDateTime gmtApprove;
+
+}

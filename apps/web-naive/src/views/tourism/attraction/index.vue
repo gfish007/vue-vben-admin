@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { FormInst, FormRules, UploadFileInfo } from 'naive-ui';
+import { type FormInst, type FormRules, NDynamicInput, type UploadFileInfo } from "naive-ui";
 
 import type { AttractionApi } from '#/api/core/attraction.types';
 
 import { computed, h, nextTick, onMounted, reactive, ref } from 'vue';
 
-import { Page, useVbenModal } from '@vben/common-ui';
+import { Page } from '@vben/common-ui';
 
 import {
   NButton,
@@ -68,7 +68,7 @@ const modalTitle = ref('');
 const editingRecord = ref<AttractionApi.AttractionSaveReq>({
   coverInfo: null, // 将 coverList 改为 coverInfo
   description: '',
-  extendContent: {},
+  extendContent: [{ key: '', value: '' }],
   id: undefined,
   location: '',
   locationInfo: {},
@@ -82,6 +82,21 @@ const editingRecord = ref<AttractionApi.AttractionSaveReq>({
 // 表单规则
 const rules: FormRules = {
   description: { message: '请输入描述', required: true, trigger: 'blur' },
+  extendContent: {
+    trigger: ['blur', 'change'],
+    validator: (rule, value) => {
+      if (!Array.isArray(value) || value.length === 0) {
+        return new Error('请至少添加一项扩展内容');
+      }
+      const hasValidItem = value.some(
+        (item) => item.key.trim() !== '' && item.value.trim() !== '',
+      );
+      if (!hasValidItem) {
+        return new Error('至少需要一项有效的扩展内容（键和值都不为空）');
+      }
+      return true;
+    },
+  },
   locationInfo: {
     message: '请在地图上选择位置',
     required: true,
@@ -127,18 +142,6 @@ const deleteLoading = ref(false);
 const saveLoading = ref(false);
 const publishLoading = ref(false);
 
-// 创建 Vben Admin 模态窗实例
-const [Modal, modalApi] = useVbenModal({
-  draggable: true,
-  onCancel: () => {
-    modalApi.close();
-  },
-  onConfirm() {
-    handleSave();
-  },
-  title: modalTitle.value,
-});
-
 // 修改 handleEdit 函数
 const handleEdit = async (row: AttractionApi.AttractionRecord) => {
   editLoading.value = true;
@@ -147,6 +150,9 @@ const handleEdit = async (row: AttractionApi.AttractionRecord) => {
     const detail = await getAttractionDetail(row.id);
     editingRecord.value = {
       ...detail,
+      extendContent: Array.isArray(detail.extendContent)
+        ? detail.extendContent
+        : [{ key: '', value: '' }],
       locationInfo:
         typeof detail.locationInfo === 'string'
           ? JSON.parse(detail.locationInfo)
@@ -155,7 +161,6 @@ const handleEdit = async (row: AttractionApi.AttractionRecord) => {
       views: detail.views === null ? 100 : Number(detail.views), // 如果为 null，使用默认值 100
     };
     showModal.value = true;
-    modalApi.open();
   } catch (error) {
     console.error('获取详情失败:', error);
     message.error('获取详情失败');
@@ -171,6 +176,9 @@ const handleSave = async () => {
     await formRef.value.validate();
     const saveData = {
       ...editingRecord.value,
+      extendContent: editingRecord.value.extendContent.filter(
+        (item) => item.key.trim() !== '' || item.value.trim() !== '',
+      ),
       locationInfo:
         typeof editingRecord.value.locationInfo === 'string'
           ? JSON.parse(editingRecord.value.locationInfo)
@@ -180,7 +188,6 @@ const handleSave = async () => {
     message.success(editingRecord.value.id ? '编辑成功' : '新增成功');
     showModal.value = false;
     fetchData();
-    modalApi.close();
   } catch (error) {
     console.error('保存失败:', error);
     message.error('保存失败，请检查表单');
@@ -273,10 +280,10 @@ const columns = [
           ? JSON.parse(row.locationInfo)
           : row.locationInfo
         : { lnglat: '' };
-      const [longitude, latitude] = locationInfo.lnglat.split(',');
+      // const [longitude, latitude] = locationInfo.lnglat.split(',');
       return h('div', [
-        h('div', `经度: ${longitude || '无'}`),
-        h('div', `纬度: ${latitude || '无'}`),
+        h('div', `经度: ${locationInfo.lng || '无'}`),
+        h('div', `纬度: ${locationInfo.lat || '无'}`),
       ]);
     },
     title: '经纬度',
@@ -443,7 +450,7 @@ const handleAdd = () => {
   editingRecord.value = {
     coverInfo: null,
     description: '',
-    extendContent: {},
+    extendContent: [{ key: '', value: '' }],
     id: undefined,
     location: '',
     locationInfo: {},
@@ -454,7 +461,6 @@ const handleAdd = () => {
     views: 100, // 设置默认查看人数为 100
   };
   showModal.value = true;
-  modalApi.open();
 };
 
 // 计算性：封面文件
@@ -547,6 +553,27 @@ fetchData();
 
 // Add this near the top of the script, with other ref declarations
 const regionOptions = ref<{ label: string; value: number }[]>([]);
+
+// 添加扩展内容的选项
+const extendContentOptions = [
+  { label: '优惠价格', value: '优惠价格' },
+  { label: '折扣范围', value: '折扣范围' },
+  { label: '营业时间', value: '营业时间' },
+  { label: '人均消费', value: '人均消费' },
+  { label: '特色服务', value: '特色服务' },
+  { label: '联系电话', value: '联系电话' },
+  { label: '地址', value: '地址' },
+  { label: '推荐季节', value: '推荐季节' },
+  { label: '游玩时长', value: '游玩时长' },
+  { label: '交通方式', value: '交通方式' },
+  { label: '注意事项', value: '注意事项' },
+  { label: '官方网址', value: '官方网址' },
+];
+
+// 修改 handleAddExtendContent 函数
+const handleAddExtendContent = () => {
+  return { key: extendContentOptions[0].value, value: '' };
+};
 
 // Add this function to fetch region list
 const fetchRegionList = async () => {
@@ -666,107 +693,137 @@ onMounted(async () => {
       />
     </NCard>
 
-    <Modal
-      class="max-h-[90vh] w-4/5 max-w-4xl overflow-y-auto"
-      title="保存景点信息"
+    <NModal
+      v-model:show="showModal"
+      :title="modalTitle"
+      preset="card"
+      style="width: 80vw; max-width: 1000px"
     >
-      <div class="flex-col-center">
-        <NForm
-          ref="formRef"
-          :model="editingRecord"
-          :rules="rules"
-          class="w-full"
-          label-placement="left"
-          label-width="100px"
-          require-mark-placement="right-hanging"
-        >
-          <NGrid :cols="24" :x-gap="24">
-            <NGridItem :span="12">
-              <NFormItem label="关联区域" path="regionId">
-                <NSelect
-                  v-model:value="editingRecord.regionId"
-                  :options="regionOptions"
-                  clearable
-                  filterable
-                  placeholder="请选择关联区域"
-                />
-              </NFormItem>
-            </NGridItem>
-            <NGridItem :span="12">
-              <NFormItem label="标题" path="title">
-                <NInput v-model:value="editingRecord.title" />
-              </NFormItem>
-            </NGridItem>
-            <NGridItem :span="12">
-              <NFormItem label="标签列" path="tagList">
-                <NDynamicTags v-model:value="editingRecord.tagList" />
-              </NFormItem>
-            </NGridItem>
-            <NGridItem :span="12">
-              <NFormItem label="评分" path="stars">
-                <NInputNumber
-                  v-model:value="editingRecord.stars"
-                  :max="5"
-                  :min="0"
-                  :precision="1"
-                  :step="0.1"
-                  placeholder="请输入评分（0-5）"
-                />
-              </NFormItem>
-            </NGridItem>
-            <NGridItem :span="12">
-              <NFormItem label="查看人数" path="views">
-                <NInputNumber
-                  v-model:value="editingRecord.views"
-                  :min="0"
-                  :step="1"
-                  placeholder="请输入查看人数"
-                />
-              </NFormItem>
-            </NGridItem>
+      <NForm
+        ref="formRef"
+        :model="editingRecord"
+        :rules="rules"
+        label-placement="left"
+        label-width="100px"
+        require-mark-placement="right-hanging"
+      >
+        <NGrid :cols="24" :x-gap="24">
+          <NGridItem :span="12">
+            <NFormItem label="关联区域" path="regionId">
+              <NSelect
+                v-model:value="editingRecord.regionId"
+                :options="regionOptions"
+                clearable
+                filterable
+                placeholder="请选择关联区域"
+              />
+            </NFormItem>
+          </NGridItem>
+          <NGridItem :span="12">
+            <NFormItem label="标题" path="title">
+              <NInput v-model:value="editingRecord.title" />
+            </NFormItem>
+          </NGridItem>
+          <NGridItem :span="12">
+            <NFormItem label="标签列" path="tagList">
+              <NDynamicTags v-model:value="editingRecord.tagList" />
+            </NFormItem>
+          </NGridItem>
+          <NGridItem :span="12">
+            <NFormItem label="评分" path="stars">
+              <NInputNumber
+                v-model:value="editingRecord.stars"
+                :max="5"
+                :min="0"
+                :precision="1"
+                :step="0.1"
+                placeholder="请输入评分（0-5）"
+              />
+            </NFormItem>
+          </NGridItem>
+          <NGridItem :span="12">
+            <NFormItem label="查看人数" path="views">
+              <NInputNumber
+                v-model:value="editingRecord.views"
+                :min="0"
+                :step="1"
+                placeholder="请输入查看人数"
+              />
+            </NFormItem>
+          </NGridItem>
 
-            <NGridItem :span="24">
-              <NFormItem label="封面" path="coverInfo">
-                <div class="relative w-full">
-                  <NUpload
-                    :before-upload="beforeUpload"
-                    :file-list="coverFileList"
-                    :max="1"
-                    class="w-full"
-                    list-type="image-card"
-                    @change="handleFileUpload"
-                    @remove="handleFileRemove"
-                  >
-                    上传图片
-                  </NUpload>
-                  <NProgress
-                    v-if="isUploading"
-                    :height="6"
-                    :percentage="uploadProgress"
-                    :show-indicator="false"
-                    class="absolute inset-x-0 bottom-0 z-10"
-                    processing
-                  />
-                </div>
-              </NFormItem>
-            </NGridItem>
-            <NGridItem :span="24">
-              <NFormItem class="w-full" label="景点概述" path="description">
-                <TEditor v-model="editingRecord.description" />
-              </NFormItem>
-            </NGridItem>
-            <NGridItem :span="24">
-              <NFormItem class="w-full" label="位置信息" path="locationInfo">
-                <LocationMap
-                  v-model:location="editingRecord.location"
-                  v-model:location-info="editingRecord.locationInfo"
+          <NGridItem :span="24">
+            <NFormItem label="封面" path="coverInfo">
+              <div class="relative w-full">
+                <NUpload
+                  :before-upload="beforeUpload"
+                  :file-list="coverFileList"
+                  :max="1"
+                  class="w-full"
+                  list-type="image-card"
+                  @change="handleFileUpload"
+                  @remove="handleFileRemove"
+                >
+                  上传图片
+                </NUpload>
+                <NProgress
+                  v-if="isUploading"
+                  :height="6"
+                  :percentage="uploadProgress"
+                  :show-indicator="false"
+                  class="absolute inset-x-0 bottom-0 z-10"
+                  processing
                 />
-              </NFormItem>
-            </NGridItem>
-          </NGrid>
-        </NForm>
-      </div>
-    </Modal>
+              </div>
+            </NFormItem>
+          </NGridItem>
+          <NGridItem :span="24">
+            <NFormItem class="w-full" label="景点概述" path="description">
+              <TEditor v-model="editingRecord.description" />
+            </NFormItem>
+          </NGridItem>
+          <NGridItem :span="24">
+            <NFormItem label="扩展内容" path="extendContent">
+              <NDynamicInput
+                v-model:value="editingRecord.extendContent"
+                :on-create="handleAddExtendContent"
+              >
+                <template #create-button-default> 添加扩展内容 </template>
+                <template #default="{ value }">
+                  <NSelect
+                    v-model:value="value.key"
+                    :options="extendContentOptions"
+                    style="width: 40%; margin-right: 4%"
+                  />
+                  <NInput
+                    v-model:value="value.value"
+                    placeholder="值"
+                    style="width: 56%"
+                  />
+                </template>
+              </NDynamicInput>
+            </NFormItem>
+          </NGridItem>
+          <NGridItem :span="24">
+            <NFormItem class="w-full" label="位置信息" path="locationInfo">
+              <LocationMap
+                v-if="showModal"
+                v-model:location="editingRecord.location"
+                v-model:location-info="editingRecord.locationInfo"
+              />
+            </NFormItem>
+          </NGridItem>
+        </NGrid>
+      </NForm>
+      <template #footer>
+        <NSpace justify="end">
+          <NButton @click="showModal = false">取消</NButton>
+          <NButton :loading="saveLoading" type="primary" @click="handleSave">
+            保存
+          </NButton>
+        </NSpace>
+      </template>
+    </NModal>
 
     <NModal
       v-model:show="showDescriptionModal"

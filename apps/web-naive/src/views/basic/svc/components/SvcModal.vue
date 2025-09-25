@@ -8,6 +8,7 @@ import { computed, h, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useVbenModal } from '@vben/common-ui';
 
 import {
+  NButton,
   NDynamicInput,
   NDynamicTags,
   NForm,
@@ -17,6 +18,7 @@ import {
   NInput,
   NInputNumber,
   NSelect,
+  NSpace,
   NUpload,
   useMessage,
 } from 'naive-ui';
@@ -28,6 +30,7 @@ import {
   saveOrUpdateSvc,
 } from '#/api/core/svc';
 import TEditor from '#/components/TEditor.vue';
+import LocationMap from '#/components/LocationMap.vue';
 
 interface OssFileInfo {
   fileName: string;
@@ -42,15 +45,8 @@ const formRef = ref<FormInst | null>(null);
 const editingRecord = ref<SvcApi.SvcSaveReq>({
   contactInfo: [{ key: '手机号', value: '135XXXXXXXX' }],
   content: '',
-  coverInfo: reactive<OssFileInfo>({
-    fileName: '',
-    fileUrl: '',
-    height: null,
-    videoFlag: false,
-    width: null,
-  }),
   id: undefined,
-  imageList: [], // 修改这里，从 activityImages 改为 imageList
+  imageList: [],
   priceInfo: {
     oriPrice: null,
     payFlag: false,
@@ -59,9 +55,19 @@ const editingRecord = ref<SvcApi.SvcSaveReq>({
   regionId: undefined,
   regionName: '',
   sortNo: 0,
+  svcType: 0, // 默认为正常类型
   tags: [],
   title: '',
+  location: '',
+  locationInfo: {},
 });
+
+// svcType选项
+const svcTypeOptions = [
+  { label: '正常', value: 0 },
+  { label: '预约', value: 1 },
+  { label: '票据', value: 2 },
+];
 
 const rules = computed(() => ({
   contactInfo: {
@@ -74,12 +80,13 @@ const rules = computed(() => ({
     },
   },
   content: { message: '请输入服务内容', required: true, trigger: 'change' },
-  'coverInfo.fileUrl': {
-    message: '请上传封面图',
+  'imageList': {
+    message: '请至少上传一张图片',
     required: true,
-    trigger: 'change',
+    trigger: 'submit',
+    type: 'array',
     validator: (rule, value) => {
-      return value !== '';
+      return value && value.length > 0;
     },
   },
   'priceInfo.oriPrice': {
@@ -140,19 +147,20 @@ const fetchRegionList = async () => {
 const fetchDetail = async (id: number) => {
   try {
     const detail = await getSvcDetail(id);
+    // 处理locationInfo，确保正确显示在位置搜索栏中
+    const locationInfo =
+      typeof detail.locationInfo === 'string'
+        ? JSON.parse(detail.locationInfo)
+        : detail.locationInfo || {};
+
+    const location = locationInfo.address?.formattedAddress || detail.location || '';
+
     editingRecord.value = {
       ...detail,
       contactInfo: detail.contactInfo || [
         { key: '手机号', value: '135XXXXXXXX' },
       ],
-      coverInfo: {
-        fileName: detail.coverInfo?.fileName || '',
-        fileUrl: detail.coverInfo?.fileUrl || '',
-        height: detail.coverInfo?.height || null,
-        videoFlag: detail.coverInfo?.videoFlag || false,
-        width: detail.coverInfo?.width || null,
-      },
-      imageList: detail.imageList || [], // 使用 imageList
+      imageList: detail.imageList || [],
       priceInfo: {
         oriPrice: detail.priceInfo?.oriPrice
           ? Number(detail.priceInfo.oriPrice)
@@ -164,7 +172,10 @@ const fetchDetail = async (id: number) => {
         typeof detail.sortNo === 'string'
           ? Number.parseInt(detail.sortNo, 10) || 0
           : detail.sortNo || 0,
+      svcType: typeof detail.svcType === 'string' ? parseInt(detail.svcType, 10) : (detail.svcType ?? 0), // 添加svcType字段，默认为0
       tags: detail.tags || [],
+      location: location, // 使用formattedAddress作为位置搜索栏的值
+      locationInfo: locationInfo,
     };
   } catch (error) {
     console.error('获取详情失败:', error);
@@ -174,13 +185,6 @@ const fetchDetail = async (id: number) => {
 
 const [Modal, modalApi] = useVbenModal({
   draggable: true,
-  onCancel() {
-    modalApi.close();
-  },
-  onConfirm() {
-    console.info('onConfirm');
-    handleSave();
-  },
   onOpenChange(isOpen) {
     console.info('onOpenChange', isOpen);
     editingRecord.value.id = null;
@@ -188,6 +192,10 @@ const [Modal, modalApi] = useVbenModal({
     modalApi.setState({ title });
     if (isOpen && id) {
       fetchDetail(id);
+    } else if (isOpen) {
+      // 重置位置搜索文本
+      editingRecord.value.location = '';
+      editingRecord.value.locationInfo = {};
     }
   },
   title: '新增 SVC 服务',
@@ -200,9 +208,12 @@ const handleSave = async () => {
     const submitData = {
       ...editingRecord.value,
       contactInfo: editingRecord.value.contactInfo,
-      coverInfo: editingRecord.value.coverInfo,
       imageList: editingRecord.value.imageList,
       sortNo: Number.parseInt(String(editingRecord.value.sortNo), 10) || 0,
+      locationInfo:
+        typeof editingRecord.value.locationInfo === 'string'
+          ? JSON.parse(editingRecord.value.locationInfo)
+          : editingRecord.value.locationInfo,
     };
     await saveOrUpdateSvc(submitData);
     message.success('保存成功');
@@ -215,72 +226,6 @@ const handleSave = async () => {
 };
 
 const fileList = ref<UploadFileInfo[]>([]);
-
-// 监听 editingRecord 的变化
-watch(
-  () => editingRecord.value.coverInfo,
-  (newCoverInfo) => {
-    fileList.value = newCoverInfo.fileUrl
-      ? [
-          {
-            id: 'cover',
-            name: newCoverInfo.fileName || '封面图',
-            status: 'finished',
-            url: newCoverInfo.fileUrl,
-          },
-        ]
-      : [];
-  },
-  { deep: true, immediate: true },
-);
-
-const handleFileUpload = async (options: { file: UploadFileInfo }) => {
-  const { file } = options;
-  if (file.file) {
-    try {
-      const formData = new FormData();
-      formData.append('file', file.file);
-      const result = await uploadFile(formData);
-      editingRecord.value.coverInfo.fileName = file.name;
-      editingRecord.value.coverInfo.fileUrl = result.fileUrl;
-      editingRecord.value.coverInfo.videoFlag = false;
-
-      // Calculate image dimensions
-      const img = new Image();
-      img.addEventListener('load', () => {
-        editingRecord.value.coverInfo.width = img.width;
-        editingRecord.value.coverInfo.height = img.height;
-      });
-      img.src = result.fileUrl;
-
-      // 在上传成功后，更新 fileList
-      fileList.value = [
-        {
-          id: 'cover',
-          name: editingRecord.value.coverInfo.fileName,
-          status: 'finished',
-          url: editingRecord.value.coverInfo.fileUrl,
-        },
-      ];
-    } catch (error) {
-      console.error('文件上传失败:', error);
-    }
-  }
-};
-
-const handleUploadChange = (options: { fileList: UploadFileInfo[] }) => {
-  if (options.fileList.length === 0) {
-    // 如果用户移除了图片，清空 coverInfo
-    editingRecord.value.coverInfo = {
-      fileName: '',
-      fileUrl: '',
-      height: null,
-      videoFlag: false,
-      width: null,
-    };
-    fileList.value = [];
-  }
-};
 
 const computedSortNo = computed({
   get: () => editingRecord.value.sortNo,
@@ -403,6 +348,12 @@ watch(
     nextTick(validateForm);
   },
 );
+
+// 计算属性，用于处理位置信息
+// 已移除，直接使用editingRecord.locationInfo
+
+// 添加位置搜索文本的计算属性
+// 已移除，直接使用editingRecord.address
 </script>
 
 <template>
@@ -428,6 +379,12 @@ watch(
         </NFormItemGi>
         <NFormItemGi :span="6" label="排序值" path="sortNo">
           <NInputNumber v-model:value="computedSortNo" />
+        </NFormItemGi>
+        <NFormItemGi :span="6" label="服务类型" path="svcType">
+          <NSelect
+            v-model:value="editingRecord.svcType"
+            :options="svcTypeOptions"
+          />
         </NFormItemGi>
 
         <NFormItemGi
@@ -487,7 +444,7 @@ watch(
             placeholder="请输入售价"
           />
         </NFormItemGi>
-        <NFormItemGi :span="12" label="服务图列表">
+        <NFormItemGi :span="24" label="服务图列表" path="imageList">
           <NUpload
             v-model:file-list="activityImagesList"
             :custom-request="handleActivityImagesUpload"
@@ -497,23 +454,27 @@ watch(
             @remove="handleActivityImagesRemove"
           />
         </NFormItemGi>
-        <NFormItemGi :span="12" label="封面图" path="coverInfo.fileUrl">
-          <NUpload
-            v-model:file-list="fileList"
-            :custom-request="handleFileUpload"
-            :max="1"
-            list-type="image-card"
-            @change="handleUploadChange"
-          >
-            点击上传
-          </NUpload>
-        </NFormItemGi>
 
         <NFormItemGi :span="24" label="服务内容" path="content">
           <TEditor v-model="editingRecord.content" />
         </NFormItemGi>
+
+        <NFormItemGi :span="24" label="位置信息">
+          <LocationMap
+            v-model:location="editingRecord.location"
+            v-model:location-info="editingRecord.locationInfo"
+          />
+        </NFormItemGi>
       </NGrid>
     </NForm>
+    <template #footer>
+      <div class="flex justify-end w-full">
+        <NSpace>
+          <NButton @click="modalApi.close">取消</NButton>
+          <NButton type="primary" @click="handleSave">保存</NButton>
+        </NSpace>
+      </div>
+    </template>
   </Modal>
 </template>
 

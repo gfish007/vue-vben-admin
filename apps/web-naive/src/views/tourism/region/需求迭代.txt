@@ -1,0 +1,25 @@
+地点管理需要做一些小优化，
+1.新增和编辑点追加：
+  标签列表：tagList  数组，动态标签，可参考景点管理页： @src/views/tourism/attraction/index.vue 的标签列实现。
+  描述：description 字符串，富文本，可参考景点管理页： @src/views/tourism/attraction/index.vue 的景点概述。
+  关联区域：regionId  字符串，下拉选择，可参考景点管理页： @src/views/tourism/attraction/index.vue 的关联区域。
+  地点评分：score 数值 0-5，允许1位小数
+  观看时机：bestView 对象，包含如下值：
+    潮汐：tide，下拉，选项值有：高潮、低潮、大潮高潮、大潮低潮、平潮
+    天气：weather，下拉，选项值有：晴天、多云、小雨、中雨、大雨、暴雨、台风、下雪、大风
+    天象：astronomy，下拉，选项值有：日出、日落、月升、月落、满月
+    时间：time, 下拉，选项值有：白天、黑夜
+  经营信息区域追加：
+    注意事项：note 字符串，最多100个字
+    官网: website 字符串，网络地址
+    备用电话：tel2 字符串,电话
+    其他联系方式：otherConnect ，字符串
+
+
+2.列表的查询条件追加：关联区域（regionId），状态（enableStatus），列表项页添加enableStatus的状态标签显示
+
+3.
+列表的记录项追加状态操作还没实现：
+  启用 PUT /open/regionSpot/enable/{spotId}
+  禁用 PUT /open/regionSpot/disable/{spotId}
+另外，次查询条件再加个

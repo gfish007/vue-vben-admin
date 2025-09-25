@@ -8,7 +8,7 @@ export namespace SvcApi {
       auditStatus?: string;
       publishStatus?: string;
       regionId?: string;
-    };
+    } 
     regionId?: string; // 添加regionId参数
   }
 
@@ -29,7 +29,17 @@ export namespace SvcApi {
     extendContent: string;
     coverUrl: string;
     sortNo: number;
+    svcType: number; // 0: 正常 1: 预约 2: 票据
     rejectReason?: string;
+    location?: string;
+    locationInfo?: Record<string, any>;
+    imageList?: Array<{ 
+      fileName: string; 
+      fileUrl: string; 
+      videoFlag: boolean; 
+      height: number | null; 
+      width: number | null; 
+    }>;
   }
 
   export interface SvcSaveReq {
@@ -42,6 +52,16 @@ export namespace SvcApi {
     tags: string[];
     coverUrl: string;
     sortNo: number;
+    svcType: number; // 0: 正常 1: 预约 2: 票据
+    location?: string;
+    locationInfo?: Record<string, any>;
+    imageList?: Array<{ 
+      fileName: string; 
+      fileUrl: string; 
+      videoFlag: boolean; 
+      height: number | null; 
+      width: number | null; 
+    }>;
   }
 
   export interface QueryResult {

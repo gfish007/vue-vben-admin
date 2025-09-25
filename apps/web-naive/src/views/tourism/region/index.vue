@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { FormInst, FormRules, UploadFileInfo } from 'naive-ui';
+import type { FormInst, FormRules, UploadFileInfo, CascaderOption } from 'naive-ui';
 
 import type { RegionApi } from '#/api/core/region.types';
+import type { CityData } from '#/api/core/cityData';
 
 import { computed, h, onMounted, reactive, ref } from 'vue';
 
@@ -10,6 +11,7 @@ import { Page } from '@vben/common-ui';
 import {
   NButton,
   NButtonGroup,
+  NCascader,
   NCard,
   NConfigProvider,
   NDataTable,
@@ -18,6 +20,7 @@ import {
   NFormItem,
   NInput,
   NModal,
+  NPagination,
   NProgress,
   NSelect,
   NSpace,
@@ -26,14 +29,18 @@ import {
   useMessage,
 } from 'naive-ui';
 
+import { requestClient } from '#/api/request';
 import { uploadFile } from '#/api/core/file';
 import {
   deleteRegions,
   doTopRegion,
   getRegionDetail,
+  publishRegion,
   queryRegionList,
+  rollbackRegion,
   saveOrUpdateRegion,
 } from '#/api/core/region';
+import { getCityDataByPid } from '#/api/core/cityData';
 import LocationMap from '#/components/LocationMap.vue';
 import TEditor from '#/components/TEditor.vue';
 import { useDynamicHeight } from '#/utils/heightUtils';
@@ -62,6 +69,17 @@ const queryForm = reactive<RegionApi.QueryParams['queryBody']>({
   title: '',
 });
 
+// 初始化地区相关
+const showInitModal = ref(false);
+const initLoading = ref(false);
+// 省市区级联相关
+const provinceOptions = ref<CascaderOption[]>([]);
+const cityOptions = ref<CascaderOption[]>([]);
+const districtOptions = ref<CascaderOption[]>([]);
+const selectedProvince = ref<string | null>(null);
+const selectedCity = ref<string | null>(null);
+const selectedDistrict = ref<string | null>(null);
+
 // 表格数据
 const tableData = ref<RegionApi.RegionRecord[]>([]);
 const loading = ref(false);
@@ -69,12 +87,16 @@ const pagination = reactive({
   page: 1,
   pageSize: 10,
   total: 0,
+  itemCount: 0,
+  showSizePicker: true,
+  showQuickJumper: true,
+  pageSizes: [10, 20, 50],
 });
 
 // 模态框相关
 const showModal = ref(false);
 const modalTitle = ref('');
-const editingRecord = ref<Omit<RegionApi.RegionSaveReq, 'level'>>({
+const editingRecord = ref<RegionApi.RegionSaveReq>({
   coverUrl: '',
   description: '',
   extendContent: [{ key: '', value: '' }],
@@ -82,8 +104,10 @@ const editingRecord = ref<Omit<RegionApi.RegionSaveReq, 'level'>>({
   location: '',
   locationId: 0,
   locationInfo: {},
+  disableRegion: null, // 添加disableRegion字段
   pid: undefined,
   title: '',
+  level: 0, // 添加level字段
 });
 
 // 表单规则
@@ -122,6 +146,8 @@ const editLoading = ref(false);
 const topLoading = ref(false);
 const deleteLoading = ref(false);
 const saveLoading = ref(false);
+const publishLoading = ref(false);
+const rollbackLoading = ref(false);
 
 // 修改 handleEdit 函数
 const handleEdit = async (row: RegionApi.RegionRecord) => {
@@ -129,20 +155,24 @@ const handleEdit = async (row: RegionApi.RegionRecord) => {
   try {
     modalTitle.value = '编辑区域';
     const detail = await getRegionDetail(row.id);
-    const { level, ...restDetail } = detail; // 解构并忽略 level 字段
     editingRecord.value = {
-      ...restDetail,
-      extendContent: Array.isArray(restDetail.extendContent)
-        ? restDetail.extendContent
+      ...detail,
+      extendContent: Array.isArray(detail.extendContent)
+        ? detail.extendContent
         : [{ key: '', value: '' }],
-      history: restDetail.history ?? '',
+      history: detail.history ?? '',
       id: row.id,
-      locationId: restDetail.locationId ?? 0,
+      locationId: detail.locationId ?? 0,
       locationInfo:
-        typeof restDetail.locationInfo === 'string'
-          ? JSON.parse(restDetail.locationInfo)
-          : restDetail.locationInfo || {},
-      pid: restDetail.pid ?? undefined,
+        typeof detail.locationInfo === 'string'
+          ? JSON.parse(detail.locationInfo)
+          : detail.locationInfo || {},
+      disableRegion:
+        typeof detail.disableRegion === 'string'
+          ? JSON.parse(detail.disableRegion)
+          : detail.disableRegion || null,
+      pid: detail.pid ?? undefined,
+      level: detail.level, // 后台已经返回数字级别，直接使用
     };
     showModal.value = true;
   } catch (error) {
@@ -181,6 +211,34 @@ const handleTop = async (row: RegionApi.RegionRecord) => {
   }
 };
 
+// 发布区域
+const handlePublish = async (row: RegionApi.RegionRecord) => {
+  publishLoading.value = true;
+  try {
+    await publishRegion(row.id);
+    message.success('发布成功');
+    fetchData();
+  } catch {
+    message.error('发布失败');
+  } finally {
+    publishLoading.value = false;
+  }
+};
+
+// 撤回区域
+const handleRollback = async (row: RegionApi.RegionRecord) => {
+  rollbackLoading.value = true;
+  try {
+    await rollbackRegion(row.id);
+    message.success('撤回成功');
+    fetchData();
+  } catch {
+    message.error('撤回失败');
+  } finally {
+    rollbackLoading.value = false;
+  }
+};
+
 // 修改 handleSave 函数
 const handleSave = async () => {
   if (!formRef.value) return;
@@ -196,6 +254,11 @@ const handleSave = async () => {
         typeof editingRecord.value.locationInfo === 'string'
           ? JSON.parse(editingRecord.value.locationInfo)
           : editingRecord.value.locationInfo,
+      disableRegion:
+        typeof editingRecord.value.disableRegion === 'string'
+          ? JSON.parse(editingRecord.value.disableRegion)
+          : editingRecord.value.disableRegion,
+      // 后台已经使用数字级别，不需要转换
     };
     await saveOrUpdateRegion(saveData);
     message.success(editingRecord.value.id ? '编辑成功' : '新增成功');
@@ -222,6 +285,13 @@ const fetchData = async () => {
     });
     tableData.value = result.records;
     pagination.total = result.total;
+    pagination.itemCount = result.total;
+    pagination.pageSize = result.size;
+    // 确保页码不会超过总页数
+    const totalPages = Math.ceil(result.total / pagination.pageSize);
+    if (pagination.page > totalPages && totalPages > 0) {
+      pagination.page = totalPages;
+    }
   } catch {
     message.error('获取数据失败');
   } finally {
@@ -272,11 +342,11 @@ const columns = [
     key: 'level',
     render: (row: RegionApi.RegionRecord) => {
       const levelMap = {
-        city: '市',
-        country: '国',
-        district: '区',
-        province: '省',
-        street: '街',
+        0: '省',
+        1: '市',
+        2: '区/县',
+        3: '镇',
+        4: '村',
       };
       return levelMap[row.level] || '未知';
     },
@@ -296,47 +366,102 @@ const columns = [
     width: 100,
   },
   {
+    key: 'publishStatus',
+    render: (row: RegionApi.RegionRecord) => {
+      const statusMap = {
+        PENDING: '待发布',
+        PUBLISH: '已发布',
+      };
+      const typeMap = {
+        PENDING: 'warning',
+        PUBLISH: 'success',
+      };
+      return h(
+        NTag,
+        { type: typeMap[row.publishStatus] || 'default' },
+        { default: () => statusMap[row.publishStatus] || '未知' },
+      );
+    },
+    title: '发布状态',
+    width: 100,
+  },
+  {
     fixed: 'right',
     key: 'actions',
     render: (row: RegionApi.RegionRecord) => {
+      const buttons = [
+        h(
+          NButton,
+          {
+            loading: editLoading.value,
+            onClick: () => handleEdit(row),
+            type: 'success',
+          },
+          { default: () => '编辑' },
+        ),
+        h(
+          NButton,
+          {
+            loading: topLoading.value,
+            onClick: () => handleTop(row),
+            type: 'info',
+          },
+          { default: () => '置顶' },
+        ),
+        h(
+          NButton,
+          {
+            loading: deleteLoading.value,
+            onClick: () => handleDelete(row),
+            type: 'error',
+          },
+          { default: () => '删除' },
+        ),
+      ];
+
+      // 根据发布状态添加发布或撤回按钮
+      if (row.publishStatus === 'PENDING') {
+        buttons.push(
+          h(
+            NButton,
+            {
+              loading: publishLoading.value,
+              onClick: (e: Event) => {
+                e.stopPropagation();
+                handlePublish(row);
+              },
+              type: 'primary',
+            },
+            { default: () => '发布' },
+          )
+        );
+      } else if (row.publishStatus === 'PUBLISH') {
+        buttons.push(
+          h(
+            NButton,
+            {
+              loading: rollbackLoading.value,
+              onClick: (e: Event) => {
+                e.stopPropagation();
+                handleRollback(row);
+              },
+              type: 'warning',
+            },
+            { default: () => '撤回' },
+          )
+        );
+      }
+
       return h(
         NButtonGroup,
         { size: 'small' },
         {
-          default: () => [
-            h(
-              NButton,
-              {
-                loading: editLoading.value,
-                onClick: () => handleEdit(row),
-                type: 'success',
-              },
-              { default: () => '编辑' },
-            ),
-            h(
-              NButton,
-              {
-                loading: topLoading.value,
-                onClick: () => handleTop(row),
-                type: 'info',
-              },
-              { default: () => '置顶' },
-            ),
-            h(
-              NButton,
-              {
-                loading: deleteLoading.value,
-                onClick: () => handleDelete(row),
-                type: 'error',
-              },
-              { default: () => '删除' },
-            ),
-          ],
+          default: () => buttons,
         },
       );
     },
     title: '操作',
-    width: 180,
+    width: 220,
   },
 ];
 
@@ -352,6 +477,13 @@ const handlePageChange = (page: number) => {
   fetchData();
 };
 
+// 处理分页大小变化
+const handlePageSizeChange = (pageSize: number) => {
+  pagination.pageSize = pageSize;
+  pagination.page = 1;
+  fetchData();
+};
+
 // 处理新增
 const handleAdd = () => {
   modalTitle.value = '新增区域';
@@ -363,8 +495,10 @@ const handleAdd = () => {
     location: '',
     locationId: 0,
     locationInfo: {},
+    disableRegion: null, // 初始化disableRegion字段
     pid: undefined,
     title: '',
+    level: 4, // 默认村级别
   };
   showModal.value = true;
 };
@@ -447,6 +581,120 @@ const handleAddExtendContent = () => {
   return { key: extendContentOptions[0].value, value: '' };
 };
 
+// 获取省份数据
+const fetchProvinces = async () => {
+  try {
+    const provinces = await getCityDataByPid('0');
+    provinceOptions.value = provinces.map(province => ({
+      label: province.extName,
+      value: province.id,
+    }));
+  } catch (error) {
+    console.error('获取省份数据失败:', error);
+    message.error('获取省份数据失败');
+  }
+};
+
+// 获取城市数据
+const fetchCities = async (provinceId: string) => {
+  try {
+    const cities = await getCityDataByPid(provinceId);
+    cityOptions.value = cities.map(city => ({
+      label: city.extName,
+      value: city.id,
+    }));
+  } catch (error) {
+    console.error('获取城市数据失败:', error);
+    message.error('获取城市数据失败');
+  }
+};
+
+// 获取区域数据
+const fetchDistricts = async (cityId: string) => {
+  try {
+    const districts = await getCityDataByPid(cityId);
+    districtOptions.value = districts.map(district => ({
+      label: district.extName,
+      value: district.id,
+    }));
+  } catch (error) {
+    console.error('获取区域数据失败:', error);
+    message.error('获取区域数据失败');
+  }
+};
+
+// 处理省份选择变化
+const handleProvinceChange = (value: string | number | null, option: CascaderOption | null) => {
+  if (value && option) {
+    // 清空城市和区域选择
+    selectedCity.value = null;
+    selectedDistrict.value = null;
+    cityOptions.value = [];
+    districtOptions.value = [];
+    // 获取城市数据
+    fetchCities(value.toString());
+  } else {
+    // 清空所有下级选择和数据
+    selectedCity.value = null;
+    selectedDistrict.value = null;
+    cityOptions.value = [];
+    districtOptions.value = [];
+  }
+};
+
+// 处理城市选择变化
+const handleCityChange = (value: string | number | null, option: CascaderOption | null) => {
+  if (value && option) {
+    // 清空区域选择
+    selectedDistrict.value = null;
+    districtOptions.value = [];
+    // 获取区域数据
+    fetchDistricts(value.toString());
+  } else {
+    // 清空下级选择和数据
+    selectedDistrict.value = null;
+    districtOptions.value = [];
+  }
+};
+
+// 初始化地区
+const handleInitRegion = async () => {
+  if (!selectedDistrict.value && !selectedCity.value && !selectedProvince.value) {
+    message.warning('请选择地区');
+    return;
+  }
+
+  initLoading.value = true;
+  try {
+    // 获取最后一级选择的地区ID
+    let cityId = '';
+    if (selectedDistrict.value) {
+      cityId = selectedDistrict.value;
+    } else if (selectedCity.value) {
+      cityId = selectedCity.value;
+    } else if (selectedProvince.value) {
+      cityId = selectedProvince.value;
+    }
+
+    // 调用初始化接口
+    await requestClient.get(`/open/region/defaultInit/${cityId}`);
+    message.success('初始化成功');
+    showInitModal.value = false;
+    // 重置选择
+    selectedProvince.value = null;
+    selectedCity.value = null;
+    selectedDistrict.value = null;
+    cityOptions.value = [];
+    districtOptions.value = [];
+    fetchData(); // 重新加载数据
+  } catch (error) {
+    console.error('初始化失败:', error);
+    message.error('初始化失败');
+  } finally {
+    initLoading.value = false;
+  }
+};
+
 // 初始加载数据
 fetchData();
 
@@ -458,6 +706,8 @@ onMounted(() => {
   if (queryCardRef.value) {
     queryCardHeight.value = queryCardRef.value.offsetHeight;
   }
+  // 获取省份数据
+  fetchProvinces();
 });
 </script>
 
@@ -487,12 +737,27 @@ onMounted(() => {
               <NFormItem label="名称" label-placement="left">
                 <NInput v-model:value="queryForm.title" style="width: 200px" />
               </NFormItem>
+              <NFormItem label="级别" label-placement="left">
+                <NSelect
+                  v-model:value="queryForm.level"
+                  :options="[
+                    { label: '省', value: 0 },
+                    { label: '市', value: 1 },
+                    { label: '区/县', value: 2 },
+                    { label: '镇', value: 3 },
+                    { label: '村', value: 4 },
+                  ]"
+                  clearable
+                  style="width: 120px"
+                />
+              </NFormItem>
             </NSpace>
             <NSpace>
               <NConfigProvider :theme="purpleTheme">
                 <NButton type="primary" @click="handleSearch">搜索</NButton>
               </NConfigProvider>
               <NButton type="success" @click="handleAdd">新增区域</NButton>
+              <NButton type="info" @click="showInitModal = true">初始化地区</NButton>
             </NSpace>
           </NSpace>
         </NForm>
@@ -506,14 +771,75 @@ onMounted(() => {
         :loading="loading"
         :max-height="`${tableHeight}px`"
         :min-height="`${tableHeight}px`"
-        :pagination="pagination"
         :scroll-x="1100"
         :single-line="false"
         flex-height
         striped
-        @update:page="handlePageChange"
       />
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+        <div>共 {{ pagination.itemCount }} 条记录</div>
+        <NPagination
+          v-model:page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :item-count="pagination.itemCount"
+          :page-sizes="pagination.pageSizes"
+          show-size-picker
+          show-quick-jumper
+          @update:page="handlePageChange"
+          @update:page-size="handlePageSizeChange"
+        />
+      </div>
     </NCard>
+
+    <NModal
+      v-model:show="showInitModal"
+      preset="card"
+      title="初始化地区"
+      style="width: 500px"
+    >
+      <NForm label-placement="left" label-width="80px">
+        <NFormItem label="选择地区">
+          <div style="display: flex; gap: 10px; width: 100%;">
+            <NSelect
+              v-model:value="selectedProvince"
+              :options="provinceOptions"
+              clearable
+              filterable
+              placeholder="请选择省份"
+              style="flex: 1;"
+              @update:value="handleProvinceChange"
+            />
+            <NSelect
+              v-model:value="selectedCity"
+              :options="cityOptions"
+              :disabled="!selectedProvince"
+              clearable
+              filterable
+              placeholder="请选择城市"
+              style="flex: 1;"
+              @update:value="handleCityChange"
+            />
+            <NSelect
+              v-model:value="selectedDistrict"
+              :options="districtOptions"
+              :disabled="!selectedCity"
+              clearable
+              filterable
+              placeholder="请选择区域"
+              style="flex: 1;"
+            />
+          </div>
+        </NFormItem>
+      </NForm>
+      <template #footer>
+        <NSpace justify="end">
+          <NButton @click="showInitModal = false">取消</NButton>
+          <NButton :loading="initLoading" type="primary" @click="handleInitRegion">
+            确认初始化
+          </NButton>
+        </NSpace>
+      </template>
+    </NModal>
 
     <NModal
       v-model:show="showModal"
@@ -531,6 +857,19 @@ onMounted(() => {
       >
         <NFormItem label="名称" path="title">
           <NInput v-model:value="editingRecord.title" />
+        </NFormItem>
+        <NFormItem label="级别" path="level">
+          <NSelect
+            v-model:value="editingRecord.level"
+            :options="[
+              { label: '省', value: 0 },
+              { label: '市', value: 1 },
+              { label: '区/县', value: 2 },
+              { label: '镇', value: 3 },
+              { label: '村', value: 4 },
+            ]"
+            disabled
+          />
         </NFormItem>
         <NFormItem label="封面" path="coverUrl">
           <div class="upload-container">
@@ -564,13 +903,6 @@ onMounted(() => {
         <NFormItem label="AI百科" path="history">
           <TEditor v-model="editingRecord.history" />
         </NFormItem>
-        <NFormItem label="父ID" path="pid">
-          <NInputNumber
-            v-model:value="editingRecord.pid"
-            :min="0"
-            placeholder="请输入父级区域ID"
-          />
-        </NFormItem>
         <NFormItem label="扩展内容" path="extendContent">
           <NDynamicInput
             v-model:value="editingRecord.extendContent"
@@ -595,6 +927,9 @@ onMounted(() => {
           <LocationMap
             v-model:location="editingRecord.location"
             v-model:location-info="editingRecord.locationInfo"
+            v-model:disable-region="editingRecord.disableRegion"
+            :show-satellite-toggle="true"
+            :show-bounds-info="true"
           />
         </NFormItem>
       </NForm>
@@ -714,7 +1049,7 @@ onMounted(() => {
 
 .upload-progress {
   position: absolute;
-  right: 0; 
+  right: 0;
   bottom: 0;
   left: 0;
   z-index: 1;

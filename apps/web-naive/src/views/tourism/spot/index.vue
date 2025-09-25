@@ -101,12 +101,6 @@ const imageFileList = ref<UploadFileInfo[]>([]);
 const uploadProgress = ref(0);
 const isUploading = ref(false);
 
-const locationInfo = ref<{
-  lat: number;
-  lng: number;
-  address?: any;
-}>({ lat: 0, lng: 0 });
-
 const editingRecord = ref<SpotApi.SpotSaveReq & {
   tagList?: string[];
   description?: string;
@@ -121,6 +115,7 @@ const editingRecord = ref<SpotApi.SpotSaveReq & {
   website?: string;
   tel2?: string;
   otherConnect?: string;
+  locationInfo?: Record<string, any>; // 添加locationInfo字段
 }>({
   adcode: 0,
   pcode: 0,
@@ -138,12 +133,7 @@ const editingRecord = ref<SpotApi.SpotSaveReq & {
     lat: 0,
     lng: 0,
   },
-  adInfo: {
-    city: '',
-    adcode: '',
-    district: '',
-    province: '',
-  },
+  // 移除adInfo字段
   businessInfo: {
     tel: '',
     rating: '',
@@ -164,6 +154,7 @@ const editingRecord = ref<SpotApi.SpotSaveReq & {
   website: '',
   tel2: '',
   otherConnect: '',
+  locationInfo: {}, // 添加locationInfo字段
 });
 
 // 表单规则
@@ -370,6 +361,14 @@ const handleEdit = async (row: SpotApi.SpotRecord) => {
     modalTitle.value = '编辑地点';
     const detail = await getSpotDetail(row.id);
 
+    // 处理locationInfo，确保正确显示在位置搜索栏中
+    const locationInfo = 
+      typeof detail.locationInfo === 'string'
+        ? JSON.parse(detail.locationInfo)
+        : detail.locationInfo || {};
+    
+    const address = locationInfo.address?.formattedAddress || detail.address || '';
+    
     // 处理location数据格式转换
     const processedDetail = {
       ...detail,
@@ -395,12 +394,8 @@ const handleEdit = async (row: SpotApi.SpotRecord) => {
       website: detail.website ?? '',
       tel2: detail.tel2 ?? '',
       otherConnect: detail.otherConnect ?? '',
-    };
-
-    // 设置locationInfo
-    locationInfo.value = {
-      lat: typeof detail.location.lat === 'string' ? parseFloat(detail.location.lat) : detail.location.lat,
-      lng: typeof detail.location.lng === 'string' ? parseFloat(detail.location.lng) : detail.location.lng,
+      address: address, // 使用formattedAddress作为位置搜索栏的值
+      locationInfo: locationInfo,
     };
 
     // 设置图片文件列表
@@ -556,52 +551,16 @@ const handleSave = async () => {
       .filter((file) => file.status === 'finished' && file.url)
       .map((file) => file.url || '');
 
-    // 处理位置信息，确保location是对象而不是字符串
-    if (typeof locationInfo.value === 'string') {
-      try {
-        const parsedLocationInfo = JSON.parse(locationInfo.value);
-        editingRecord.value.location = {
-          lat: parseFloat(parsedLocationInfo.lnglat.split(',')[1]),
-          lng: parseFloat(parsedLocationInfo.lnglat.split(',')[0])
-        };
+    // 处理位置信息，与svc服务保持一致
+    const submitData = {
+      ...editingRecord.value,
+      locationInfo:
+        typeof editingRecord.value.locationInfo === 'string'
+          ? JSON.parse(editingRecord.value.locationInfo)
+          : editingRecord.value.locationInfo,
+    };
 
-        // 将address赋值到adInfo
-        if (parsedLocationInfo.address) {
-          editingRecord.value.adInfo = {
-            ...editingRecord.value.adInfo,
-            ...parsedLocationInfo.address
-          };
-        }
-      } catch (e) {
-        console.error('解析位置信息失败:', e);
-        // 如果解析失败，使用默认值
-        editingRecord.value.location = {
-          lat: 0,
-          lng: 0
-        };
-      }
-    } else if (locationInfo.value && typeof locationInfo.value === 'object') {
-      // 处理从LocationMap组件接收到的对象格式 {lat, lng, address}
-      if (locationInfo.value.lat !== undefined && locationInfo.value.lng !== undefined) {
-        // 确保location字段是数字类型
-        editingRecord.value.location = {
-          lat: typeof locationInfo.value.lat === 'string' ?
-            parseFloat(locationInfo.value.lat) : locationInfo.value.lat,
-          lng: typeof locationInfo.value.lng === 'string' ?
-            parseFloat(locationInfo.value.lng) : locationInfo.value.lng,
-        };
-      }
-
-      // 如果locationInfo中有address信息，也更新到adInfo
-      if (locationInfo.value.address) {
-        editingRecord.value.adInfo = {
-          ...editingRecord.value.adInfo,
-          ...locationInfo.value.address
-        };
-      }
-    }
-
-    await saveOrUpdateSpot(editingRecord.value);
+    await saveOrUpdateSpot(submitData);
     message.success(editingRecord.value.id ? '编辑成功' : '新增成功');
     showModal.value = false;
     fetchData();
@@ -836,12 +795,7 @@ const handleAdd = () => {
       lat: 0,
       lng: 0,
     },
-    adInfo: {
-      city: '',
-      adcode: '',
-      district: '',
-      province: '',
-    },
+    // 移除adInfo字段
     businessInfo: {
       tel: '',
       rating: '',
@@ -862,10 +816,8 @@ const handleAdd = () => {
     website: '',
     tel2: '',
     otherConnect: '',
+    locationInfo: {}, // 添加locationInfo字段
   };
-
-  // 重置locationInfo
-  locationInfo.value = { lat: 0, lng: 0 };
 
   // 重置分类
   selectedCategoryPath.value.splice(0, selectedCategoryPath.value.length);
@@ -1292,7 +1244,7 @@ onMounted(() => {
         <NFormItem label="位置信息" path="location" style="width: 100%">
           <LocationMap
             v-model:location="editingRecord.address"
-            v-model:location-info="locationInfo"
+            v-model:location-info="editingRecord.locationInfo"
           />
         </NFormItem>
       </NForm>

@@ -28,6 +28,7 @@ import {
   saveOrUpdateServer,
 } from '#/api/core/server';
 import TEditor from '#/components/TEditor.vue';
+import LocationMap from '#/components/LocationMap.vue';
 
 interface OssFileInfo {
   fileName: string;
@@ -50,7 +51,7 @@ const editingRecord = ref<ServerApi.ServerSaveReq>({
     width: null,
   }),
   id: undefined,
-  imageList: [], // 修改这里，从 activityImages 改为 imageList
+  imageList: [],
   priceInfo: {
     oriPrice: null,
     payFlag: false,
@@ -61,6 +62,8 @@ const editingRecord = ref<ServerApi.ServerSaveReq>({
   sortNo: 0,
   tags: [],
   title: '',
+  location: '',
+  locationInfo: {},
 });
 
 const rules = computed(() => ({
@@ -140,6 +143,14 @@ const fetchRegionList = async () => {
 const fetchDetail = async (id: number) => {
   try {
     const detail = await getServerDetail(id);
+    // 处理locationInfo，确保正确显示在位置搜索栏中
+    const locationInfo = 
+      typeof detail.locationInfo === 'string'
+        ? JSON.parse(detail.locationInfo)
+        : detail.locationInfo || {};
+    
+    const location = locationInfo.address?.formattedAddress || detail.location || '';
+    
     editingRecord.value = {
       ...detail,
       contactInfo: detail.contactInfo || [
@@ -152,7 +163,7 @@ const fetchDetail = async (id: number) => {
         videoFlag: detail.coverInfo?.videoFlag || false,
         width: detail.coverInfo?.width || null,
       },
-      imageList: detail.imageList || [], // 使用 imageList
+      imageList: detail.imageList || [],
       priceInfo: {
         oriPrice: detail.priceInfo?.oriPrice
           ? Number(detail.priceInfo.oriPrice)
@@ -165,6 +176,8 @@ const fetchDetail = async (id: number) => {
           ? Number.parseInt(detail.sortNo, 10) || 0
           : detail.sortNo || 0,
       tags: detail.tags || [],
+      location: location, // 使用formattedAddress作为位置搜索栏的值
+      locationInfo: locationInfo,
     };
   } catch (error) {
     console.error('获取详情失败:', error);
@@ -176,6 +189,9 @@ const [Modal, modalApi] = useVbenModal({
   draggable: true,
   onCancel() {
     modalApi.close();
+    // 重置表单数据
+    editingRecord.value.location = '';
+    editingRecord.value.locationInfo = {};
   },
   onConfirm() {
     console.info('onConfirm');
@@ -188,6 +204,10 @@ const [Modal, modalApi] = useVbenModal({
     modalApi.setState({ title });
     if (isOpen && id) {
       fetchDetail(id);
+    } else if (isOpen) {
+      // 重置位置搜索文本
+      editingRecord.value.location = '';
+      editingRecord.value.locationInfo = {};
     }
   },
   title: '新增地区服务',
@@ -203,6 +223,10 @@ const handleSave = async () => {
       coverInfo: editingRecord.value.coverInfo,
       imageList: editingRecord.value.imageList,
       sortNo: Number.parseInt(String(editingRecord.value.sortNo), 10) || 0,
+      locationInfo:
+        typeof editingRecord.value.locationInfo === 'string'
+          ? JSON.parse(editingRecord.value.locationInfo)
+          : editingRecord.value.locationInfo,
     };
     await saveOrUpdateServer(submitData);
     message.success('保存成功');
@@ -403,6 +427,12 @@ watch(
     nextTick(validateForm);
   },
 );
+
+// 计算属性，用于处理位置信息
+// 已移除，直接使用editingRecord.locationInfo
+
+// 添加位置搜索文本的计算属性
+// 已移除，直接使用editingRecord.address
 </script>
 
 <template>
@@ -511,6 +541,13 @@ watch(
 
         <NFormItemGi :span="24" label="服务内容" path="content">
           <TEditor v-model="editingRecord.content" />
+        </NFormItemGi>
+        
+        <NFormItemGi :span="24" label="位置信息">
+          <LocationMap
+            v-model:location="editingRecord.location"
+            v-model:location-info="editingRecord.locationInfo"
+          />
         </NFormItemGi>
       </NGrid>
     </NForm>

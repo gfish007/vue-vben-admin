@@ -53,6 +53,7 @@ const fetchData = async () => {
       },
       queryBody: queryForm,
     });
+    // 直接使用返回的数据，不需要额外处理galleryList
     cardData.value = result.records;
     pagination.total = result.total;
   } catch {
@@ -193,21 +194,62 @@ const handleCardClick = (item: any) => {
       </NCard>
     </div>
     <NCard class="flex flex-col overflow-hidden">
-      <NGrid
-        :cols="4"
+      <div 
+        class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
         :style="{ height: `${tableHeight + 44}px`, overflowY: 'auto' }"
-        :x-gap="24"
-        :y-gap="24"
       >
-        <NGridItem v-for="item in cardData" :key="item.id">
-          <div
-            class="card-item rounded-lg bg-white p-4 shadow-md"
-            @click="handleCardClick(item)"
-          >
-            <div v-html="renderCard(item)"></div>
+        <div 
+          v-for="item in cardData" 
+          :key="item.id"
+          class="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md hover:border-blue-300 cursor-pointer"
+          @click="handleCardClick(item)"
+        >
+          <!-- 封面图片占位 -->
+          <div class="aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden">
+            <div class="w-full h-full flex items-center justify-center">
+              <span class="icon-[mdi--image-outline] text-5xl text-gray-300"></span>
+            </div>
+            <!-- 图片数量标签 -->
+            <div 
+              class="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full"
+            >
+              图库
+            </div>
           </div>
-        </NGridItem>
-      </NGrid>
+          
+          <!-- 内容区域 -->
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2 line-clamp-1 text-gray-800 group-hover:text-blue-600 transition-colors">
+              {{ item.title }}
+            </h3>
+            <div class="space-y-2 text-sm text-gray-600">
+              <div class="flex items-start">
+                <span class="icon-[mdi--map-marker-outline] mr-2 mt-0.5 text-gray-400 flex-shrink-0"></span>
+                <span class="line-clamp-2">{{ item.locationInfo?.address?.formattedAddress || item.regionName || '未指定地址' }}</span>
+              </div>
+              <div class="flex items-center">
+                <span class="icon-[mdi--clock-outline] mr-2 text-gray-400"></span>
+                <span>{{ item.gmtModified ? new Date(item.gmtModified).toLocaleDateString() : '未知时间' }}</span>
+              </div>
+              <div class="flex items-center">
+                <span class="icon-[mdi--map-outline] mr-2 text-gray-400"></span>
+                <span class="line-clamp-1">{{ item.regionName || '未指定区域' }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 悬停时显示的操作按钮 -->
+          <div class="absolute inset-0 bg-black bg-opacity-0 flex items-center justify-center transition-all duration-300 group-hover:bg-opacity-20">
+            <NButton 
+              type="primary" 
+              size="small" 
+              class="opacity-0 transform translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0"
+            >
+              管理图库
+            </NButton>
+          </div>
+        </div>
+      </div>
       <div class="mt-4 flex justify-end">
         <NPagination
           v-model:page="pagination.page"
@@ -221,4 +263,53 @@ const handleCardClick = (item: any) => {
   </Page>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* 添加一些额外的样式优化 */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 卡片悬停效果优化 */
+.card-item {
+  transition: all 0.3s ease;
+}
+
+.card-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* 查询卡片样式优化 */
+.query-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 响应式优化 */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+</style>

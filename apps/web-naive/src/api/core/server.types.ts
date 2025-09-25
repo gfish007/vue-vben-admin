@@ -3,12 +3,12 @@ export namespace ServerApi {
     page: {
       current: number;
       size: number;
-    };
+    } 
     queryBody: {
       auditStatus?: string;
       publishStatus?: string;
       regionId?: string;
-    };
+    } 
     regionId?: string; // 添加regionId参数
   }
 
@@ -30,6 +30,8 @@ export namespace ServerApi {
     coverUrl: string;
     sortNo: number;
     rejectReason?: string;
+    location?: string;
+    locationInfo?: Record<string, any>;
   }
 
   export interface ServerSaveReq {
@@ -42,6 +44,8 @@ export namespace ServerApi {
     tags: string[];
     coverUrl: string;
     sortNo: number;
+    location?: string;
+    locationInfo?: Record<string, any>;
   }
 
   export interface QueryResult {

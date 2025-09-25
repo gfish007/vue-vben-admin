@@ -1,0 +1,42 @@
+
+  用户列表返回类型更新。字段如下：
+  /**
+    * id
+    */
+   private String id;
+
+   /**
+     * 昵称
+     */
+    private String nickname;
+
+    /**
+     * 头像URL
+     */
+    private String avatar;
+
+    /**
+     * 手机号
+     */
+    private String phone;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 是否可用1是0否
+     */
+    private Integer enabled;
+
+    private String appid;
+
+    private String openid;
+
+    private String unionid;
+
+    /**
+      * 最近登录
+      */
+    private String gmtLogin;

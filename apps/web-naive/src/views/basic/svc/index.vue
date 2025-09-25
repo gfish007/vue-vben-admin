@@ -107,6 +107,25 @@ const columns = [
   { key: 'userName', title: '用户名', width: 110 },
   { key: 'regionName', title: '区域名', width: 120 },
   {
+    key: 'svcType',
+    render: (row) => {
+      const typeMap = {
+        0: { text: '正常', type: 'success' },
+        1: { text: '预约', type: 'warning' },
+        2: { text: '票据', type: 'error' },
+      };
+      // 确保svcType是数字类型
+      const svcType = typeof row.svcType === 'string' ? parseInt(row.svcType, 10) : row.svcType;
+      const type = typeMap[svcType] || {
+        text: '未知',
+        type: 'default',
+      };
+      return h(NTag, { type: type.type }, { default: () => type.text });
+    },
+    title: '服务类型',
+    width: 100,
+  },
+  {
     key: 'content',
     render: (row) =>
       h(
@@ -566,7 +585,7 @@ onMounted(() => {
                 <NButton type="primary" @click="handleSearch">搜索</NButton>
                 <NButton @click="handleReset">重置</NButton>
                 <NButton type="success" @click="handleAdd">
-                  新增服务 {{ tableHeight }}
+                  新增服务
                 </NButton>
               </NButtonGroup>
             </NSpace>

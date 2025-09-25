@@ -1,0 +1,116 @@
+对接推荐列表接口相关内容：
+更新或新增：POST /open/recommendation/saveOrUpdate
+列表：POST /open/recommendation/list   查询条件：标题，有效时间范围，状态
+删除：POST  /open/recommendation/remove  id列表
+禁用/启用：POST  /open/recommendation/status   id 、状态
+
+还有个操作按钮“配置”。点击配置后跳到一个新的页，里面显示3个列表，每个列表上面都有按钮进行增删改查：
+  POI地点列表
+    新增的时候，从弹窗页面 @src/views/tourism/spot/index.vue 里面批量勾选记录。
+  打卡点列表
+    新增的时候，从弹窗页面 @src/views/tourism/attraction/index.vue 里面批量勾选记录。
+  活动列表
+    新增的时候，从弹窗页面 @src/views/tourism/activity/index.vue 里面批量勾选记录。
+记录勾选确认后，会以RecommendationDetail对象方式列表存储。全局保存时提交列表明细对象。编辑时，将列表明细对象按照类型进行分组，分别显示在对应列表。
+明细页更新或新增：POST /open/recommendation/saveOrUpdateDetail
+明细页获取详情: GET /open/recommendation/detail/{id}
+
+
+实际对象：
+public class Recommendation {
+
+    private String id;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
+
+    /**
+     * 最后更新时间
+     */
+    private LocalDateTime gmtModified;
+
+    /**
+     * 目标类型（spot:地点,attraction:景点,note:笔记,activity:活动等）
+     */
+    private String targetType;
+
+    /**
+     * 目标ID
+     */
+    private Long targetId;
+
+    /**
+     * 排序
+     */
+    private Integer sortOrder;
+
+    /**
+     * 状态 1正常 0下架
+     */
+    private Integer status;
+
+    /**
+     * 区域id
+     */
+    private Long regionId;
+
+    /**
+     * 标题
+     */
+    private String title;
+
+}
+区域接口调用 /open/region/list ,你可以参考 @src/views/tourism/region/index.vue
+
+
+
+//推荐详情
+
+public class RecommendationDetail {
+
+    private String id;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
+
+    /**
+     * 最后更新时间
+     */
+    private LocalDateTime gmtModified;
+
+    /**
+     * 推荐ID
+     */
+    private Long recommendId;
+
+    /**
+     * 目标类型（spot:地点,attraction:景点,note:笔记,activity:活动等）
+     */
+    private String targetType;
+
+    /**
+     * 目标ID
+     */
+    private Long relationId;
+
+    /**
+     * 排序
+     */
+    private Integer sortOrder;
+
+    /**
+     * 标题
+     */
+    private String title;
+
+    /**
+     * 图片
+     */
+    private String imageUrl;
+
+
+}

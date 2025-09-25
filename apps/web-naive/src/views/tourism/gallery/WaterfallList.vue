@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { GalleryListResp } from '#/api/app/attractionGallery';
 
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 import {
   NButton,
@@ -40,6 +40,13 @@ const previewItem = ref<GalleryListResp | null>(null);
 const observerTarget = ref<HTMLElement | null>(null);
 const observer = ref<IntersectionObserver | null>(null);
 
+// 监听attractionId变化，重新加载数据
+watch(() => props.attractionId, (newId, oldId) => {
+  if (newId !== oldId) {
+    resetAndLoad();
+  }
+});
+
 const fetchGalleryItems = async () => {
   if (loading.value || !hasMore.value) return;
 
@@ -53,7 +60,12 @@ const fetchGalleryItems = async () => {
       },
     });
 
-    galleryItems.value.push(...response.records);
+    if (currentPage.value === 1) {
+      galleryItems.value = response.records;
+    } else {
+      galleryItems.value.push(...response.records);
+    }
+    
     hasMore.value = response.records.length === pageSize;
     if (hasMore.value) {
       currentPage.value++;
@@ -92,6 +104,13 @@ const handleSetFirstImage = async (item: GalleryListResp) => {
   }
 };
 
+const resetAndLoad = () => {
+  currentPage.value = 1;
+  hasMore.value = true;
+  galleryItems.value = [];
+  fetchGalleryItems();
+};
+
 onMounted(() => {
   observer.value = new IntersectionObserver(
     (entries) => {
@@ -121,12 +140,12 @@ onUnmounted(() => {
 <template>
   <div class="w-full">
     <div
-      class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-5"
+      class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
     >
       <div
         v-for="item in galleryItems"
         :key="item.id"
-        class="group relative aspect-square overflow-hidden rounded-md border"
+        class="group relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
       >
         <div
           :style="{
@@ -134,34 +153,43 @@ onUnmounted(() => {
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }"
-          class="h-full w-full bg-cover bg-center bg-no-repeat"
+          class="aspect-square w-full bg-cover bg-center bg-no-repeat transition-transform duration-500 group-hover:scale-105"
           @click="handleItemClick(item)"
         ></div>
-        <NPopconfirm @positive-click="handleDelete(item)">
-          <template #trigger>
+        <div class="absolute inset-0 bg-black bg-opacity-0 transition-all duration-300 group-hover:bg-opacity-20">
+          <div class="absolute bottom-2 right-2 flex space-x-1">
             <NButton
               circle
-              class="absolute bottom-1 right-1 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              type="error"
-              @click.stop
+              size="small"
+              class="opacity-0 transition-all duration-300 group-hover:opacity-100"
+              type="primary"
+              @click.stop="handleSetFirstImage(item)"
             >
               <template #icon>
-                <span class="icon-[mdi--delete]"></span>
+                <span class="icon-[mdi--star]"></span>
               </template>
             </NButton>
-          </template>
-          是否确认删除图片?
-        </NPopconfirm>
-        <NButton
-          circle
-          class="absolute bottom-1 left-1 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          type="primary"
-          @click.stop="handleSetFirstImage(item)"
-        >
-          <template #icon>
-            <span class="icon-[mdi--star]"></span>
-          </template>
-        </NButton>
+            <NPopconfirm @positive-click="handleDelete(item)">
+              <template #trigger>
+                <NButton
+                  circle
+                  size="small"
+                  class="opacity-0 transition-all duration-300 group-hover:opacity-100"
+                  type="error"
+                  @click.stop
+                >
+                  <template #icon>
+                    <span class="icon-[mdi--delete]"></span>
+                  </template>
+                </NButton>
+              </template>
+              是否确认删除图片?
+            </NPopconfirm>
+          </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <div class="text-xs text-white truncate">{{ item.fileName }}</div>
+        </div>
       </div>
     </div>
 
@@ -193,6 +221,10 @@ onUnmounted(() => {
 <style scoped>
 .group {
   box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+}
+
+.group:hover {
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
 }
 </style>
 

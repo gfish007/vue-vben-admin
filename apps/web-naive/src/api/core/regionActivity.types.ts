@@ -11,6 +11,7 @@ export namespace RegionActivityApi {
       publishStatus?: string;
       regionId?: string;
     };
+    regionId?: string; // 添加regionId参数
   }
 
   export interface RegionActivityRecord {

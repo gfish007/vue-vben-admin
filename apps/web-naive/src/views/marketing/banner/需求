@@ -1,0 +1,63 @@
+对接下商户接口相关内容：
+更新或新增：POST /open/banner/saveOrUpdate
+列表：POST /open/banner/list   查询条件：标题，有效时间范围，状态
+删除：POST  /open/banner/remove  id列表
+禁用/启用：POST  /open/banner/status   id 、状态
+
+商户对象：
+public class Merchant  {
+
+    private String id;
+
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime gmtCreate;
+
+    /**
+     * 最后更新时间
+     */
+    private LocalDateTime gmtModified;
+
+    /**
+     * 标题
+     */
+    private String title;
+
+    /**
+     * 图片URL
+     */
+    private String imageUrl;
+
+    /**
+     * 跳转类型(0:不跳转 1:内部页面 2:H5链接 3:小程序路径)
+     */
+    private Integer jumpType;
+
+    /**
+     * 跳转地址
+     */
+    private String jumpUrl;
+
+    /**
+     * 展示开始时间
+     */
+    private LocalDateTime startTime;
+
+    /**
+     * 展示结束时间
+     */
+    private LocalDateTime endTime;
+
+    /**
+     * 排序
+     */
+    private Integer sortOrder;
+
+    /**
+     * 状态 1正常 0下架
+     */
+    private Integer status;
+
+}

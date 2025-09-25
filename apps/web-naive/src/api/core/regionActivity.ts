@@ -6,12 +6,13 @@ import { requestClient } from '#/api/request';
  * 查询区域活动列表
  */
 export async function queryRegionActivityList(
-  params: RegionActivityApi.QueryParams,
+  params: RegionActivityApi.QueryParams & { regionId?: string },
 ) {
-  return requestClient.post<RegionActivityApi.QueryResult>(
-    '/open/regionActivity/list',
-    params,
-  );
+  const { regionId, ...queryParams } = params;
+  const url = (regionId !== undefined && regionId !== null) 
+    ? `/open/regionActivity/list/${regionId}` 
+    : '/open/regionActivity/list';
+  return requestClient.post<RegionActivityApi.QueryResult>(url, queryParams);
 }
 
 /**

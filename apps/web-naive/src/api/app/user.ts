@@ -1,13 +1,17 @@
+import type { UserApi } from './user.types';
+
 import { requestClient } from '#/api/request';
 
-export async function queryUserList(params: any) {
-  return requestClient.post<any>('/open/user/list', params);
+export async function queryUserList(
+  params: UserApi.QueryParams,
+): Promise<UserApi.QueryResult> {
+  return requestClient.post<UserApi.QueryResult>('/open/user/list', params);
 }
 
-export async function enableUser(userId: number) {
-  return requestClient.put<void>(`/open/user/normal/${userId}`);
+export async function disableUser(id: string): Promise<void> {
+  return requestClient.put<void>(`/open/user/disable/${id}`);
 }
 
-export async function disableUser(userId: number) {
-  return requestClient.put<void>(`/open/user/forbidden/${userId}`);
+export async function enableUser(id: string): Promise<void> {
+  return requestClient.put<void>(`/open/user/enable/${id}`);
 }
