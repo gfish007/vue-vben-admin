@@ -614,68 +614,66 @@ onMounted(async () => {
     <div ref="queryCardRef" class="w-full">
       <NCard :bordered="true" class="mb-4 p-2">
         <NForm :model="queryForm" class="flex h-full items-center" inline>
-          <NSpace :size="[24, 0]" class="w-full items-center justify-between">
-            <NSpace :size="24" align="center">
-              <NFormItem
-                class="mb-0 flex items-center"
-                label="关联区域"
-                label-placement="left"
-              >
-                <NSelect
-                  v-model:value="queryForm.regionId"
-                  :options="regionOptions"
-                  class="w-36"
-                  clearable
-                  filterable
-                  placeholder="请选择关联区域"
-                />
-              </NFormItem>
-              <NFormItem
-                class="mb-0 flex items-center"
-                label="标题"
-                label-placement="left"
-              >
-                <NInput v-model:value="queryForm.title" class="w-36" />
-              </NFormItem>
-              <NFormItem
-                class="mb-0 flex items-center"
-                label="发布状态"
-                label-placement="left"
-              >
-                <NSelect
-                  v-model:value="queryForm.publishStatus"
-                  :options="[
-                    { label: '待发布', value: 'PENDING' },
-                    { label: '已发布', value: 'PUBLISH' },
-                  ]"
-                  class="w-28"
-                  clearable
-                />
-              </NFormItem>
-              <NFormItem
-                class="mb-0 flex items-center"
-                label="可状态"
-                label-placement="left"
-              >
-                <NSelect
-                  v-model:value="queryForm.enableStatus"
-                  :options="[
-                    { label: '可用', value: true },
-                    { label: '禁用', value: false },
-                  ]"
-                  class="w-28"
-                  clearable
-                />
-              </NFormItem>
-            </NSpace>
-            <NSpace>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px 24px; width: 100%; align-items: center;">
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="关联区域"
+              label-placement="left"
+            >
+              <NSelect
+                v-model:value="queryForm.regionId"
+                :options="regionOptions"
+                class="w-36"
+                clearable
+                filterable
+                placeholder="请选择关联区域"
+              />
+            </NFormItem>
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="标题"
+              label-placement="left"
+            >
+              <NInput v-model:value="queryForm.title" class="w-36" />
+            </NFormItem>
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="发布状态"
+              label-placement="left"
+            >
+              <NSelect
+                v-model:value="queryForm.publishStatus"
+                :options="[
+                  { label: '待发布', value: 'PENDING' },
+                  { label: '已发布', value: 'PUBLISH' },
+                ]"
+                class="w-28"
+                clearable
+              />
+            </NFormItem>
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="可状态"
+              label-placement="left"
+            >
+              <NSelect
+                v-model:value="queryForm.enableStatus"
+                :options="[
+                  { label: '可用', value: true },
+                  { label: '禁用', value: false },
+                ]"
+                class="w-28"
+                clearable
+              />
+            </NFormItem>
+            <div style="display: flex; gap: 16px; margin-left: auto;">
               <NButtonGroup>
                 <NButton type="primary" @click="handleSearch">搜索</NButton>
                 <NButton @click="handleReset">重置</NButton>
                 <NButton type="success" @click="handleAdd">新增景点</NButton>
               </NButtonGroup>
-            </NSpace>
-          </NSpace>
+            </div>
+          </div>
         </NForm>
       </NCard>
     </div>

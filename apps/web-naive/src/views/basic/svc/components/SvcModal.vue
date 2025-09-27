@@ -246,7 +246,7 @@ const handleActivityImagesUpload = async (options: {
     try {
       const formData = new FormData();
       formData.append('file', file.file);
-      const result = await uploadFile(formData);
+      const result = await uploadFile(formData, undefined, 'SVC');
 
       const newImage: OssFileInfo = {
         fileName: file.name,

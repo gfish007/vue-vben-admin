@@ -597,51 +597,44 @@ onMounted(() => {
     <div ref="queryCardRef" class="w-full">
       <NCard class="query-card">
         <NForm :model="queryForm" inline>
-          <NSpace
-            :size="[24, 0]"
-            align="center"
-            justify="space-between"
-            style="width: 100%"
-          >
-            <NSpace :size="24" align="center">
-              <NFormItem label="标题" label-placement="left">
-                <NInput v-model:value="queryForm.title" style="width: 150px" />
-              </NFormItem>
-              <NFormItem label="有效时间" label-placement="left">
-                <NDatePicker
-                  v-model:value="queryForm.startTimeBegin"
-                  placeholder="开始时间"
-                  style="width: 150px"
-                  type="datetime"
-                  value-format="yyyy-MM-dd HH:mm:ss"
-                />
-                <span style="margin: 0 8px">-</span>
-                <NDatePicker
-                  v-model:value="queryForm.startTimeEnd"
-                  placeholder="结束时间"
-                  style="width: 150px"
-                  type="datetime"
-                  value-format="yyyy-MM-dd HH:mm:ss"
-                />
-              </NFormItem>
-              <NFormItem label="状态" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.status"
-                  :options="[
-                    { label: '正常', value: 1 },
-                    { label: '下架', value: 0 },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-            </NSpace>
-            <NSpace>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px 24px; width: 100%; align-items: center;">
+            <NFormItem label="标题" label-placement="left" style="margin-bottom: 0;">
+              <NInput v-model:value="queryForm.title" style="width: 150px" />
+            </NFormItem>
+            <NFormItem label="有效时间" label-placement="left" style="margin-bottom: 0;">
+              <NDatePicker
+                v-model:value="queryForm.startTimeBegin"
+                placeholder="开始时间"
+                style="width: 150px"
+                type="datetime"
+                value-format="yyyy-MM-dd HH:mm:ss"
+              />
+              <span style="margin: 0 8px">-</span>
+              <NDatePicker
+                v-model:value="queryForm.startTimeEnd"
+                placeholder="结束时间"
+                style="width: 150px"
+                type="datetime"
+                value-format="yyyy-MM-dd HH:mm:ss"
+              />
+            </NFormItem>
+            <NFormItem label="状态" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.status"
+                :options="[
+                  { label: '正常', value: 1 },
+                  { label: '下架', value: 0 },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <div style="display: flex; gap: 16px; margin-left: auto;">
               <NButton type="primary" @click="handleSearch">搜索</NButton>
               <NButton @click="handleReset">重置</NButton>
               <NButton type="success" @click="handleAdd">新增推荐</NButton>
-            </NSpace>
-          </NSpace>
+            </div>
+          </div>
         </NForm>
       </NCard>
     </div>

@@ -480,7 +480,7 @@ const handleFileUpload = async (options: {
       formData.append('file', file.file);
       const result = await uploadFile(formData, (progress) => {
         uploadProgress.value = progress;
-      });
+      }, 'SPOT');
 
       // 更新图片URL列表
       editingRecord.value.imageUrls.push(result.fileUrl);
@@ -868,101 +868,91 @@ onMounted(() => {
     <div ref="queryCardRef" class="w-full">
       <NCard class="query-card">
         <NForm :model="queryForm" inline>
-          <NSpace
-            :size="[24, 0]"
-            align="center"
-            justify="space-between"
-            style="width: 100%"
-          >
-            <NSpace :size="24" align="center">
-              <NFormItem label="地点类型" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.spotType"
-                  :options="[
-                    { label: '美食', value: 'FOOD' },
-                    { label: '活动', value: 'ACTIVITY' },
-                    { label: '酒店', value: 'HOTEL' },
-                    { label: '景点', value: 'ATTRACTION' },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-              <NFormItem label="标题" label-placement="left">
-                <NInput v-model:value="queryForm.title" style="width: 200px" />
-              </NFormItem>
-              <NFormItem label="手动维护" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.handleFlag"
-                  :options="[
-                    { label: '是', value: 'Y' },
-                    { label: '否', value: 'N' },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-              <NFormItem label="地址" label-placement="left">
-                <NInput v-model:value="queryForm.address" style="width: 200px" />
-              </NFormItem>
-              <NFormItem label="省市区" label-placement="left">
-                <NCascader
-                  v-model:value="queryForm.adcode"
-                  placeholder="请选择具体的县"
-                  :options="areaCascaderOptions"
-                  check-strategy="child"
-                  show-path
-                  :on-load="loadAreaCascaderData"
-                  remote
-                  :leaf-field="'isLeaf'"
-                  :children-field="'children'"
-                  :value-field="'value'"
-                  :label-field="'label'"
-                  style="width: 200px"
-                  @update:value="handleCascaderChange"
-                />
-              </NFormItem>
-              <NFormItem label="镇" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.townCode"
-                  :disabled="!queryForm.adcode"
-                  :options="townOptions"
-                  clearable
-                  filterable
-                  placeholder="请先选择区县"
-                  style="width: 120px"
-                />
-              </NFormItem>
-              <NFormItem label="关联区域" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.regionId"
-                  :options="regionOptions"
-                  clearable
-                  filterable
-                  placeholder="请选择关联区域"
-                  style="width: 150px"
-                />
-              </NFormItem>
-              <NFormItem label="状态" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.enableStatus"
-                  :options="[
-                    { label: '启用', value: 1 },
-                    { label: '禁用', value: 0 },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-            </NSpace>
-          </NSpace>
-          <!-- 将按钮组移到查询条件后面 -->
-          <div style="width: 100%; margin-top: 16px; display: flex; justify-content: flex-end;">
-            <NSpace>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px 24px; width: 100%; align-items: center;">
+            <NFormItem label="地点类型" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.spotType"
+                :options="[
+                  { label: '美食', value: 'FOOD' },
+                  { label: '活动', value: 'ACTIVITY' },
+                  { label: '酒店', value: 'HOTEL' },
+                  { label: '景点', value: 'ATTRACTION' },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <NFormItem label="标题" label-placement="left" style="margin-bottom: 0;">
+              <NInput v-model:value="queryForm.title" style="width: 200px" />
+            </NFormItem>
+            <NFormItem label="手动维护" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.handleFlag"
+                :options="[
+                  { label: '是', value: 'Y' },
+                  { label: '否', value: 'N' },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <NFormItem label="地址" label-placement="left" style="margin-bottom: 0;">
+              <NInput v-model:value="queryForm.address" style="width: 200px" />
+            </NFormItem>
+            <NFormItem label="省市区" label-placement="left" style="margin-bottom: 0;">
+              <NCascader
+                v-model:value="queryForm.adcode"
+                placeholder="请选择具体的县"
+                :options="areaCascaderOptions"
+                check-strategy="child"
+                show-path
+                :on-load="loadAreaCascaderData"
+                remote
+                :leaf-field="'isLeaf'"
+                :children-field="'children'"
+                :value-field="'value'"
+                :label-field="'label'"
+                style="width: 200px"
+                @update:value="handleCascaderChange"
+              />
+            </NFormItem>
+            <NFormItem label="镇" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.townCode"
+                :disabled="!queryForm.adcode"
+                :options="townOptions"
+                clearable
+                filterable
+                placeholder="请先选择区县"
+                style="width: 120px"
+              />
+            </NFormItem>
+            <NFormItem label="关联区域" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.regionId"
+                :options="regionOptions"
+                clearable
+                filterable
+                placeholder="请选择关联区域"
+                style="width: 150px"
+              />
+            </NFormItem>
+            <NFormItem label="状态" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.enableStatus"
+                :options="[
+                  { label: '启用', value: 1 },
+                  { label: '禁用', value: 0 },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <div style="display: flex; gap: 16px; margin-left: auto;">
               <NButton type="primary" @click="handleSearch">搜索</NButton>
               <NButton @click="handleReset">重置</NButton>
               <NButton type="success" @click="handleAdd">新增地点</NButton>
-            </NSpace>
+            </div>
           </div>
         </NForm>
       </NCard>

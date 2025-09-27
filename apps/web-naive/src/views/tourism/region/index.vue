@@ -535,7 +535,7 @@ const handleFileUpload = async (options: {
       formData.append('file', file.file);
       const result = await uploadFile(formData, (progress) => {
         uploadProgress.value = progress;
-      });
+      }, 'REGION');
       editingRecord.value.coverUrl = result.fileUrl;
       message.success('文件上传成功');
     } catch (error) {
@@ -716,50 +716,43 @@ onMounted(() => {
     <div ref="queryCardRef" class="w-full">
       <NCard class="query-card">
         <NForm :model="queryForm" inline>
-          <NSpace
-            :size="[24, 0]"
-            align="center"
-            justify="space-between"
-            style="width: 100%"
-          >
-            <NSpace :size="24" align="center">
-              <NFormItem label="可用状态" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.enable_status"
-                  :options="[
-                    { label: '可用', value: 1 },
-                    { label: '不可用', value: 0 },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-              <NFormItem label="名称" label-placement="left">
-                <NInput v-model:value="queryForm.title" style="width: 200px" />
-              </NFormItem>
-              <NFormItem label="级别" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.level"
-                  :options="[
-                    { label: '省', value: 0 },
-                    { label: '市', value: 1 },
-                    { label: '区/县', value: 2 },
-                    { label: '镇', value: 3 },
-                    { label: '村', value: 4 },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-            </NSpace>
-            <NSpace>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px 24px; width: 100%; align-items: center;">
+            <NFormItem label="可用状态" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.enable_status"
+                :options="[
+                  { label: '可用', value: 1 },
+                  { label: '不可用', value: 0 },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <NFormItem label="名称" label-placement="left" style="margin-bottom: 0;">
+              <NInput v-model:value="queryForm.title" style="width: 200px" />
+            </NFormItem>
+            <NFormItem label="级别" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.level"
+                :options="[
+                  { label: '省', value: 0 },
+                  { label: '市', value: 1 },
+                  { label: '区/县', value: 2 },
+                  { label: '镇', value: 3 },
+                  { label: '村', value: 4 },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <div style="display: flex; gap: 16px; margin-left: auto;">
               <NConfigProvider :theme="purpleTheme">
                 <NButton type="primary" @click="handleSearch">搜索</NButton>
               </NConfigProvider>
               <NButton type="success" @click="handleAdd">新增区域</NButton>
               <NButton type="info" @click="showInitModal = true">初始化地区</NButton>
-            </NSpace>
-          </NSpace>
+            </div>
+          </div>
         </NForm>
       </NCard>
     </div>

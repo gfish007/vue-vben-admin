@@ -10,5 +10,60 @@
     "title": "概览",
     "analytics": "分析页",
     "workspace": "工作台"
+  },
+  "tourism": {
+    "title": "景区管理",
+    "region": "地区开发",
+    "location": "位置管理",
+    "destination": "目的地管理",
+    "attraction": "景点管理",
+    "spot": "POI地点管理",
+    "gallery": "景点画廊",
+    "activity": "区域活动",
+
+    "hotel": "酒店管理",
+    "restaurant": "餐饮管理",
+    "transportation": "交通管理",
+    "ticket": "门票管理",
+    "order": "订单管理",
+    "user": "用户管理"
+  },
+  "system": {
+    "title": "系统管理",
+    "user": "账号管理",
+    "menu": "菜单管理",
+    "role": "角色管理",
+    "dict": "字典管理"
+  },
+  "marketing": {
+    "title": "营销管理",
+    "banner": "banner管理",
+    "recommend": "推荐管理",
+    "popup": "弹窗管理",
+    "diamondArea": "金刚区管理"
+  },
+  "statistics": {
+    "title": "数据统计",
+    "user": "用户统计",
+    "merchant": "商户管理"
+  },
+  "basic": {
+    "title": "基础管理",
+    "merchant": "商户管理",
+    "svc": "服务管理",
+    "user": "用户管理"
+  },
+  "trade": {
+    "title": "交易管理",
+    "order": "订单管理",
+    "flow": "流水管理",
+    "reservation": "预约管理"
+  },
+  "guesthouse": {
+    "title": "民宿管理",
+    "rooms": "客房管理",
+    "reservation": "预定管理",
+    "gantt": "入住看板",
+    "ganttDemo": "看板演示"
   }
 }

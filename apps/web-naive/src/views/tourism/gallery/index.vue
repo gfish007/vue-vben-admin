@@ -156,40 +156,33 @@ const handleCardClick = (item: any) => {
     <div ref="queryCardRef" class="w-full">
       <NCard ref="queryCardRef" class="query-card mb-4 p-2">
         <NForm :model="queryForm" class="flex h-full items-center" inline>
-          <NSpace
-            :size="[24, 0]"
-            align="center"
-            class="w-full"
-            justify="space-between"
-          >
-            <NSpace :size="24" align="center">
-              <NFormItem
-                class="mb-0 flex items-center"
-                label="区域ID"
-                label-placement="left"
-              >
-                <NSelect
-                  v-model:value="queryForm.regionId"
-                  :options="regionOptions"
-                  class="w-52"
-                  placeholder="请选择区域"
-                />
-              </NFormItem>
-              <NFormItem
-                class="mb-0 flex items-center"
-                label="景点标题"
-                label-placement="left"
-              >
-                <NInput v-model:value="queryForm.title" class="w-52" />
-              </NFormItem>
-            </NSpace>
-            <NSpace>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px 24px; width: 100%; align-items: center;">
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="区域ID"
+              label-placement="left"
+            >
+              <NSelect
+                v-model:value="queryForm.regionId"
+                :options="regionOptions"
+                class="w-52"
+                placeholder="请选择区域"
+              />
+            </NFormItem>
+            <NFormItem
+              class="mb-0 flex items-center"
+              label="景点标题"
+              label-placement="left"
+            >
+              <NInput v-model:value="queryForm.title" class="w-52" />
+            </NFormItem>
+            <div style="display: flex; gap: 16px; margin-left: auto;">
               <NConfigProvider :theme="purpleTheme">
                 <NButton type="primary" @click="handleSearch">搜索</NButton>
               </NConfigProvider>
               <NButton @click="handleReset">重置</NButton>
-            </NSpace>
-          </NSpace>
+            </div>
+          </div>
         </NForm>
       </NCard>
     </div>

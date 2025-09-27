@@ -763,7 +763,7 @@ const handleFileUpload = async (options: {
       formData.append('file', file.file);
       const result = await uploadFile(formData, (progress) => {
         uploadProgress.value = progress;
-      });
+      }, 'MERCHANT');
 
       // 更新对应的URL字段
       if (field === 'logoUrl') {
@@ -853,62 +853,55 @@ onMounted(() => {
     <div ref="queryCardRef" class="w-full">
       <NCard class="query-card">
         <NForm :model="queryForm" inline>
-          <NSpace
-            :size="[24, 0]"
-            align="center"
-            justify="space-between"
-            style="width: 100%"
-          >
-            <NSpace :size="24" align="center">
-              <NFormItem label="商户名" label-placement="left">
-                <NInput v-model:value="queryForm.name" style="width: 150px" />
-              </NFormItem>
-              <NFormItem label="商户编码" label-placement="left">
-                <NInput v-model:value="queryForm.merchantCode" style="width: 150px" />
-              </NFormItem>
-              <NFormItem label="状态" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.status"
-                  :options="[
-                    { label: '未激活', value: 0 },
-                    { label: '正常', value: 1 },
-                    { label: '禁用', value: 2 },
-                    { label: '注销', value: 3 },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-              <NFormItem label="审核状态" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.auditStatus"
-                  :options="[
-                    { label: '待审核', value: 0 },
-                    { label: '审核通过', value: 1 },
-                    { label: '审核驳回', value: 2 },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-              <NFormItem label="是否可接单" label-placement="left">
-                <NSelect
-                  v-model:value="queryForm.available"
-                  :options="[
-                    { label: '可接单', value: 1 },
-                    { label: '暂停', value: 0 },
-                  ]"
-                  clearable
-                  style="width: 120px"
-                />
-              </NFormItem>
-            </NSpace>
-            <NSpace>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px 24px; width: 100%; align-items: center;">
+            <NFormItem label="商户名" label-placement="left" style="margin-bottom: 0;">
+              <NInput v-model:value="queryForm.name" style="width: 150px" />
+            </NFormItem>
+            <NFormItem label="商户编码" label-placement="left" style="margin-bottom: 0;">
+              <NInput v-model:value="queryForm.merchantCode" style="width: 150px" />
+            </NFormItem>
+            <NFormItem label="状态" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.status"
+                :options="[
+                  { label: '未激活', value: 0 },
+                  { label: '正常', value: 1 },
+                  { label: '禁用', value: 2 },
+                  { label: '注销', value: 3 },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <NFormItem label="审核状态" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.auditStatus"
+                :options="[
+                  { label: '待审核', value: 0 },
+                  { label: '审核通过', value: 1 },
+                  { label: '审核驳回', value: 2 },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <NFormItem label="是否可接单" label-placement="left" style="margin-bottom: 0;">
+              <NSelect
+                v-model:value="queryForm.available"
+                :options="[
+                  { label: '可接单', value: 1 },
+                  { label: '暂停', value: 0 },
+                ]"
+                clearable
+                style="width: 120px"
+              />
+            </NFormItem>
+            <div style="display: flex; gap: 16px; margin-left: auto;">
               <NButton type="primary" @click="handleSearch">搜索</NButton>
               <NButton @click="handleReset">重置</NButton>
               <NButton type="success" @click="handleAdd">新增商户</NButton>
-            </NSpace>
-          </NSpace>
+            </div>
+          </div>
         </NForm>
       </NCard>
     </div>

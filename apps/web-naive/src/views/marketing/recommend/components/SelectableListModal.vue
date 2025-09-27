@@ -344,17 +344,15 @@ onMounted(() => {
     <div ref="queryCardRef" class="w-full">
       <NCard class="query-card mb-4">
         <NForm :model="queryForm" inline>
-          <NSpace :size="[24, 0]" align="center" justify="space-between" style="width: 100%">
-            <NSpace :size="24" align="center">
-              <NFormItem label="标题" label-placement="left">
-                <NInput v-model:value="queryForm.title" style="width: 200px" />
-              </NFormItem>
-            </NSpace>
-            <NSpace>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px 24px; width: 100%; align-items: center;">
+            <NFormItem label="标题" label-placement="left" style="margin-bottom: 0;">
+              <NInput v-model:value="queryForm.title" style="width: 200px" />
+            </NFormItem>
+            <div style="display: flex; gap: 16px; margin-left: auto;">
               <NButton type="primary" @click="handleSearch">搜索</NButton>
               <NButton @click="handleReset">重置</NButton>
-            </NSpace>
-          </NSpace>
+            </div>
+          </div>
         </NForm>
       </NCard>
     </div>

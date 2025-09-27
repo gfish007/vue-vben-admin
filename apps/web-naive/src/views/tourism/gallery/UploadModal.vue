@@ -58,7 +58,7 @@ const handleUpload = async ({ file, onError, onFinish, onProgress }: any) => {
     formData.append('file', file.file);
     const result = await uploadFile(formData, (progress) => {
       onProgress({ percent: progress });
-    });
+    }, 'GALLERY');
 
     console.log('resp', result);
 
@@ -115,6 +115,7 @@ const handleUpload = async ({ file, onError, onFinish, onProgress }: any) => {
                   // 触发视图更新
                   previewImageList.value = [...previewImageList.value];
                 },
+                'GALLERY'
               );
 
               // 更新预览图信息
